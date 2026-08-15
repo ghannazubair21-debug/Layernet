@@ -1,29 +1,30 @@
 # LayerNet
 
-LayerNet is the frontend capstone for the FlyRank Frontend AI Engineering internship. It explores AI-powered user experiences and developer workflows for a future fraud detection dashboard that combines modern frontend engineering with intelligent interfaces.
+LayerNet is the frontend capstone for the FlyRank Frontend AI Engineering internship. It is being developed toward an AI-powered fraud detection dashboard that combines modern frontend engineering with intelligent interfaces.
 
-## FE-01 setup phase
+## Project Status
 
-This repository is in the initial setup stage for FE-01. At present, it contains only the initial documentation and project configuration files. A React/Vite application, package manifest, and application source code have not been created yet.
+The project has completed its initial repository and frontend scaffolding phase.
 
-## Goals
-
-- Explore AI-assisted frontend patterns and developer workflows
-- Define a clear frontend foundation for future fraud detection features
-- Build toward a modular, maintainable, and accessible user interface
-
-## Project status
-
-Initial setup. The repository is being prepared for the next frontend implementation milestones, which will include project scaffolding, core UI work, and integration with AI-driven product features.
-
-## Planned technology stack
-
+Current foundation:
 - React
 - TypeScript
 - Vite
-- Tailwind CSS
+- ESLint
 - AI-assisted development workflows
 
-## Internship context
+Next milestones will include designing the core interface, building reusable UI components, and integrating AI-driven product features.
 
-This project is being developed as part of the FlyRank Frontend AI Engineering capstone. The current focus is establishing the project foundation before application implementation begins.
+## Goals
+
+- Build a modular and maintainable frontend
+- Explore AI-assisted frontend development workflows
+- Create accessible and responsive user interfaces
+- Prepare the frontend for future fraud detection functionality
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
