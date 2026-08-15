@@ -23,3 +23,10 @@ The dashboard will eventually display fraud insights, risk scores, alerts, and d
 ## Notes
 - No application source code is being created in this setup phase.
 - This repository is prepared for future frontend development while preserving a clean foundation.
+## FE-03 Project Rules
+
+1. Forms must use controlled React inputs and keep form state inside the form component. Do not use uncontrolled inputs for application settings forms.
+
+2. All settings form fields must have accessible labels and validation feedback. Required fields must show clear error messages, and invalid fields should use appropriate accessibility attributes such as `aria-invalid`.
+
+3. Settings data must use the `layernet-settings` localStorage key and must be validated before saving. Theme changes must support System, Light, and Dark options and must persist across page reloads.
