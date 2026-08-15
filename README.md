@@ -4,16 +4,17 @@ LayerNet is the frontend capstone for the FlyRank Frontend AI Engineering intern
 
 ## Project Status
 
-The project has completed its initial repository and frontend scaffolding phase.
+The initial repository setup and frontend scaffolding are complete.
 
 Current foundation:
+
 - React
 - TypeScript
 - Vite
 - ESLint
 - AI-assisted development workflows
 
-Next milestones will include designing the core interface, building reusable UI components, and integrating AI-driven product features.
+The next milestones include designing the core interface, building reusable UI components, and preparing the frontend for future fraud detection functionality.
 
 ## Goals
 
