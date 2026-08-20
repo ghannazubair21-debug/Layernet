@@ -1,11 +1,48 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import MetricCard from "@/components/MetricCard";
 import TransactionTable from "@/components/TransactionTable";
 import ChartCard from "@/components/ChartCard";
-import { getMetrics, transactions } from "@/lib/mockData";
+import { transactions as mockTransactions } from "@/lib/mockData";
+import { getStoredTransactions } from "@/lib/transactionStorage";
+import { Transaction } from "@/lib/types";
+
+function mergeTransactions(stored: Transaction[]) {
+  return [...mockTransactions, ...stored].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
+}
 
 export default function Page() {
-  const metrics = getMetrics();
+  const [transactions, setTransactions] = useState<Transaction[]>(() => mergeTransactions(getStoredTransactions()));
+
+  useEffect(() => {
+    const syncTransactions = () => {
+      setTransactions(mergeTransactions(getStoredTransactions()));
+    };
+
+    syncTransactions();
+
+    const handleStorageUpdate = () => {
+      syncTransactions();
+    };
+
+    window.addEventListener("layernet-transactions-updated", handleStorageUpdate);
+    return () => window.removeEventListener("layernet-transactions-updated", handleStorageUpdate);
+  }, []);
+
+  const metrics = useMemo(() => {
+    const total = transactions.length;
+    const fraudDetected = transactions.filter((t) => t.risk !== "Low").length;
+    const avgRisk = Math.round(
+      transactions.reduce((sum, t) => sum + t.riskScore, 0) / Math.max(1, transactions.length),
+    );
+    const fraudRate = Math.round((fraudDetected / Math.max(1, total)) * 1000) / 10;
+
+    return { total, fraudDetected, avgRisk, fraudRate };
+  }, [transactions]);
 
   return (
     <section className="space-y-6">

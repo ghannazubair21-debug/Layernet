@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { analyzeTransaction } from "@/lib/fraudAnalysis";
 import { saveTransaction } from "@/lib/transactionStorage";
@@ -18,6 +18,7 @@ export default function Page() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveMessage, setSaveMessage] = useState("");
+  const submissionGuardRef = useRef(false);
 
   function validate() {
     const e: Record<string, string> = {};
@@ -29,11 +30,16 @@ export default function Page() {
 
   const handleSubmit = async (ev?: React.FormEvent) => {
     ev?.preventDefault();
+
+    if (submissionGuardRef.current) return;
+
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length) return;
 
+    submissionGuardRef.current = true;
     setLoading(true);
+
     const payload = { id, amount: Number(amount), type, location, device, timestamp };
     const res = analyzeTransaction(payload);
     await new Promise((r) => setTimeout(r, 400));
@@ -53,6 +59,20 @@ export default function Page() {
     saveTransaction(savedTransaction);
     setResult(res);
     setSaveMessage("Transaction analyzed and saved to History.");
+    setLoading(false);
+  };
+
+  const handleReset = () => {
+    submissionGuardRef.current = false;
+    setId("");
+    setAmount("");
+    setType("Purchase");
+    setLocation("");
+    setDevice("Web");
+    setTimestamp("2026-08-19T12:00");
+    setErrors({});
+    setResult(null);
+    setSaveMessage("");
     setLoading(false);
   };
 
@@ -107,7 +127,7 @@ export default function Page() {
             <button disabled={loading} type="submit" className="layernet-button layernet-button--primary">
               {loading ? "Analyzing..." : "Analyze Transaction"}
             </button>
-            <button type="button" onClick={() => { setResult(null); setSaveMessage(""); }} className="layernet-button">
+            <button type="button" onClick={handleReset} className="layernet-button">
               Reset
             </button>
           </div>

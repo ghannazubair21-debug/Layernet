@@ -35,6 +35,10 @@ export function saveTransaction(transaction: Transaction) {
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("layernet-transactions-updated"));
+  }
 }
 
 export function clearStoredTransactions() {
