@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* Approved LayerNet palette
+
+LIGHT:
+- #D9BCAF (warm page background)
+- #8A9688 (secondary/muted tone)
+- #283D3B (strong headings / important text)
+- #795663 (main branded accent)
+- #011627 (deepest text/accent)
+
+DARK:
+- #011627 (page background)
+- #283D3B (cards/surfaces)
+- #D9BCAF (high-contrast branded accent)
+- #795663 (secondary accent/border)
+- #8A9688 (muted/secondary text)
+*/
+
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
+  /* Light theme (exact approved values) */
+  --page-bg: #D9BCAF; /* warm light background */
+  --surface: #FFFFFF; /* white cards/surfaces for readability */
+  --surface-strong: #FFFFFF; /* keep surfaces white for clarity */
+  --primary: #795663; /* main branded accent */
+  --primary-hover: #283D3B; /* darker accent for interactions */
+  --text: #283D3B; /* strong headings and important text */
+  --muted-text: #8A9688; /* secondary/muted tone */
+  --border: #D9BCAF; /* soft warm border */
+  /* Status colors (harmonize, remain secondary to palette) */
+  --success: #0f9f6e;
+  --warning: #d97706;
+  --danger: #dc2626;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  /* Dark theme (exact approved values) */
+  --page-bg: #011627; /* primary page background */
+  --surface: #283D3B; /* dark charcoal cards/surfaces */
+  --surface-strong: #283D3B;
+  --primary: #D9BCAF; /* high-contrast branded accent */
+  --primary-hover: #795663; /* secondary accent/border */
+  --text: #D9BCAF; /* headings and readable text */
+  --muted-text: #8A9688; /* muted/secondary text */
+  --border: #795663; /* subtle dark accent for borders */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page-bg: #011627;
+    --surface: #283D3B;
+    --surface-strong: #283D3B;
+    --primary: #D9BCAF;
+    --primary-hover: #795663;
+    --text: #D9BCAF;
+    --muted-text: #8A9688;
+    --border: #795663;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+  }
+}
+
+@theme inline {
+  --color-background: var(--page-bg);
+  --color-foreground: var(--text);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "SFMono-Regular", "Consolas", monospace;
+}
+
+html {
+  background-color: var(--page-bg);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.layernet-shell {
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+.layernet-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.layernet-card-strong {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.layernet-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-text);
+}
+
+.layernet-title {
+  color: var(--text);
+}
+
+.layernet-muted {
+  color: var(--muted-text);
+}
+
+.layernet-accent {
+  color: var(--primary);
+}
+
+.layernet-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.layernet-button--primary {
+  border-color: transparent;
+  background: var(--primary);
+  color: #fff;
+}
+
+.layernet-button--primary:hover {
+  background: var(--primary-hover);
+}
+
+.layernet-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.layernet-status--success {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.layernet-status--warning {
+  color: var(--warning);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.layernet-status--danger {
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.08);
+}
