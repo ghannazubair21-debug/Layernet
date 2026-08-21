@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import ThemeProvider from "@/components/ThemeProvider";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "LayerNet | Fraud Detection",
@@ -12,7 +16,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="light">
+    <html lang="en" data-theme="light" className={cn("font-sans", geist.variable)}>
       <body className="layernet-shell min-h-screen">
         <ThemeProvider />
         <Navigation />
