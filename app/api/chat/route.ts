@@ -16,7 +16,7 @@ import {
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return Response.json(
       { error: "Gemini API key is not configured." },
       { status: 503 },
