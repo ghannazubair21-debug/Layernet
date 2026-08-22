@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import AIChat from "@/components/AIChat";
 import PageHeader from "@/components/PageHeader";
 import MetricCard from "@/components/MetricCard";
 import TransactionTable from "@/components/TransactionTable";
@@ -110,6 +111,10 @@ export default function Page() {
             </ul>
           </div>
         </div>
+      </div>
+
+      <div className="pt-2">
+        <AIChat />
       </div>
 
       <div>
