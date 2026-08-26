@@ -12,6 +12,7 @@ import {
   GEMINI_MODEL_ID,
   GEMINI_MODEL_SETTINGS,
 } from "@/lib/ai-config";
+import { scoreTransaction } from "@/lib/tools/score-transaction";
 
 export const maxDuration = 30;
 
@@ -37,8 +38,20 @@ export async function POST(request: Request) {
 
     const result = streamText({
       model: google(GEMINI_MODEL_ID),
-      system: AI_SYSTEM_PROMPT,
+
+      system: `${AI_SYSTEM_PROMPT}
+
+When the user asks you to analyze a transaction, assess fraud risk, explain a transaction's risk, or calculate a fraud score, use the scoreTransaction tool.
+Do not invent the tool result. Use the structured tool output when available.`,
+
       messages: await convertToModelMessages(body.messages),
+
+      tools: {
+        scoreTransaction,
+      },
+
+      stopWhen: ({ steps }) => steps.length >= 3,
+
       abortSignal: request.signal,
       temperature: GEMINI_MODEL_SETTINGS.temperature,
       topP: GEMINI_MODEL_SETTINGS.topP,
@@ -48,14 +61,19 @@ export async function POST(request: Request) {
     return createUIMessageStreamResponse({
       stream: toUIMessageStream({
         stream: result.stream,
-        onError: () => "The LayerNet AI Fraud Analyst could not complete this request.",
+        onError: () =>
+          "The LayerNet AI Fraud Analyst could not complete this request.",
       }),
       consumeSseStream: consumeStream,
     });
   } catch (error) {
     console.error("LayerNet AI chat failure:", error);
+
     return Response.json(
-      { error: "The LayerNet AI Fraud Analyst could not complete this request." },
+      {
+        error:
+          "The LayerNet AI Fraud Analyst could not complete this request.",
+      },
       { status: 500 },
     );
   }

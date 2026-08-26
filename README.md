@@ -29,3 +29,34 @@ Install dependencies:
 
 ```bash
 npm install
+
+## FE-07 — Tool Results & Structured Output
+
+LayerNet includes a server-side AI tool that analyzes transaction risk and returns structured data for the UI.
+
+### Tool: scoreTransaction
+
+**Purpose:** Analyze a financial transaction and calculate a fraud risk score.
+
+**Input schema:**
+
+```text
+amount: number
+country: string
+transactionType: "purchase" | "transfer" | "withdrawal" | "payment"
+unusualActivity: Boolean
+
+### Return shape
+
+```text
+{
+  riskScore: number,
+  riskLevel: "low" | "medium" | "high",
+  transaction: {
+    amount: number,
+    country: string,
+    transactionType: string
+  },
+  reasons: string[],
+  recommendation: string
+}
