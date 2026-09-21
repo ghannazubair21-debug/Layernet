@@ -170,3 +170,130 @@ body {
   color: var(--danger);
   background: rgba(248, 113, 113, 0.08);
 }
+
+/* ============================================================
+   SmartActionButton — motion & state micro-interactions
+   ============================================================ */
+
+/* Spinner rotation for the loading state */
+@keyframes layernet-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Single short shake for the error state */
+@keyframes layernet-shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  70% {
+    transform: translateX(-6px);
+  }
+  40%,
+  60% {
+    transform: translateX(6px);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+}
+
+/* Brief success pulse to confirm completion */
+@keyframes layernet-success-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* SmartActionButton extends layernet-button--primary with
+   transform/opacity transitions for hover, focus, and state changes. */
+.layernet-smart-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: #fff;
+  /* Include transform and opacity in the transition set */
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease, transform 0.15s ease, opacity 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  min-height: 2.5rem;
+  min-width: 14rem;
+  padding: 0.625rem 1.25rem;
+}
+
+.layernet-smart-button:hover {
+  background: var(--primary-hover);
+  transform: scale(1.02);
+}
+
+.layernet-smart-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.layernet-smart-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Animation utility classes */
+.layernet-spin {
+  animation: layernet-spin 0.8s linear infinite;
+}
+
+.layernet-shake {
+  animation: layernet-shake 0.5s ease-in-out;
+}
+
+.layernet-success-pulse {
+  animation: layernet-success-pulse 0.3s ease-in-out;
+}
+
+/* Reduced motion support — keep all state feedback, remove transforms/animations */
+@media (prefers-reduced-motion: reduce) {
+  .layernet-smart-button {
+    transition: background-color 0.05s ease, border-color 0.05s ease,
+      color 0.05s ease;
+  }
+
+  .layernet-smart-button:hover {
+    transform: none;
+  }
+
+  .layernet-spin {
+    animation: none;
+  }
+
+  .layernet-shake {
+    animation: none;
+  }
+
+  .layernet-success-pulse {
+    animation: none;
+  }
+}
+
+
+
+
+
