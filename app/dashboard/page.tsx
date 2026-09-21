@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import MetricCard from "@/components/MetricCard";
 import TransactionTable from "@/components/TransactionTable";
 import ChartCard from "@/components/ChartCard";
+import SmartActionButton from "@/components/SmartActionButton";
 import { transactions as mockTransactions } from "@/lib/mockData";
 import { getStoredTransactions } from "@/lib/transactionStorage";
 import { Transaction } from "@/lib/types";
@@ -99,6 +100,16 @@ export default function Page() {
               <a href="/analysis" className="layernet-button layernet-button--primary">Analyze Transaction</a>
               <a href="/history" className="layernet-button">Transaction History</a>
               <a href="/analytics" className="layernet-button">Open Analytics</a>
+            </div>
+
+            <div className="mt-4">
+              <p className="layernet-label">Smart action</p>
+              <p className="mt-1 text-xs text-[var(--muted-text)]">
+                AI-powered analysis with motion and state feedback.
+              </p>
+              <div className="mt-2">
+                <SmartActionButton />
+              </div>
             </div>
           </div>
 
