@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "LayerNet | Fraud Detection",
-  description: "Transformer-based fraud detection system",
+  title: "LayerNet | Fraud Intelligence Research Prototype",
+  description: "Transaction analysis and investigation with a transparent heuristic baseline.",
 };
 
 export default function RootLayout({

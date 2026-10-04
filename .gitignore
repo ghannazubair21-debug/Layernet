@@ -12,6 +12,12 @@
 
 # testing
 /coverage
+/.test-build
+/ml/.venv/
+/ml/data/
+/ml/artifacts/
+__pycache__/
+*.py[cod]
 
 # next.js
 /.next/
@@ -41,3 +47,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+*.egg-info/

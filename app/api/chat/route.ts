@@ -48,14 +48,14 @@ export async function POST(request: Request) {
     return createUIMessageStreamResponse({
       stream: toUIMessageStream({
         stream: result.stream,
-        onError: () => "The LayerNet AI Fraud Analyst could not complete this request.",
+        onError: () => "The AI investigation assistant could not complete this response.",
       }),
       consumeSseStream: consumeStream,
     });
   } catch (error) {
     console.error("LayerNet AI chat failure:", error);
     return Response.json(
-      { error: "The LayerNet AI Fraud Analyst could not complete this request." },
+      { error: "The AI investigation assistant could not complete this response." },
       { status: 500 },
     );
   }

@@ -1,64 +1,69 @@
-import { AnalysisResult, Transaction } from "./types";
+import type { AnalysisResult, RiskLevel, TransactionRecord } from "./types";
 
-// Deterministic mock analysis logic: score influenced by amount, location risk, device, and type
-const highRiskCountries = ["NG", "PK", "RU", "VN"];
+const ANALYSIS_METHOD = "LayerNet rules baseline v1";
 
-function countryFromLocation(loc: string) {
-  const parts = loc.split(",");
-  if (!parts[1]) return "US";
-  const maybe = parts[1].trim().split(" ")[0];
-  return maybe || "US";
-}
-
-export function analyzeTransaction(tx: Pick<Transaction, "id" | "amount" | "type" | "location" | "device" | "timestamp">): AnalysisResult {
+export function analyzeTransaction(
+  tx: Pick<TransactionRecord, "transactionId" | "amount" | "type" | "location" | "channel" | "timestamp">,
+): Omit<AnalysisResult, "features" | "behavioralBaseline"> {
   const base = Math.min(50, Math.floor(Math.log10(Math.max(1, tx.amount)) * 10));
   let score = base;
+  const factors: string[] = [`Amount baseline: $${tx.amount.toFixed(2)} contributes ${base} points using a log-scaled heuristic.`];
 
-  // Type adjustments
-  if (tx.type === "Refund") score += 10;
-  if (tx.type === "Withdrawal") score += 15;
+  if (tx.type === "Refund") {
+    score += 10;
+    factors.push("Transaction type is Refund: +10 heuristic points.");
+  }
+  if (tx.type === "Withdrawal") {
+    score += 15;
+    factors.push("Transaction type is Withdrawal: +15 heuristic points.");
+  }
 
-  // Device adjustments
-  if (tx.device === "Mobile") score += 5;
-  if (tx.device === "Web") score += 8;
-  if (tx.device === "POS") score -= 5;
+  if (tx.channel === "Mobile") {
+    score += 5;
+    factors.push("Channel is Mobile: +5 heuristic points.");
+  }
+  if (tx.channel === "Web") {
+    score += 8;
+    factors.push("Channel is Web: +8 heuristic points.");
+  }
+  if (tx.channel === "POS") {
+    score -= 5;
+    factors.push("Channel is POS: −5 heuristic points.");
+  }
 
-  // Location adjustments (simple country code search)
-  const country = countryFromLocation(tx.location);
-  if (highRiskCountries.includes(country)) score += 25;
-
-  // Time window: odd hours (00:00 - 05:00) increases risk
+  // Use UTC consistently: the input has no timezone or account-local timezone.
   const date = new Date(tx.timestamp);
-  const hour = date.getHours();
-  if (hour >= 0 && hour < 6) score += 12;
+  const hour = date.getUTCHours();
+  if (hour >= 0 && hour < 6) {
+    score += 12;
+    factors.push(`Timestamp is ${date.toISOString()} (UTC hour ${String(hour).padStart(2, "0")}): +12 heuristic points.`);
+  }
 
   // Cap
   score = Math.max(0, Math.min(100, score));
 
-  const probability = Math.round((score / 100) * 1000) / 1000;
   const risk = score >= 80 ? "High" : score >= 40 ? "Medium" : "Low";
   const decision = score >= 85 ? "Block" : score >= 60 ? "Review" : "Clear";
 
-  const factors: string[] = [];
-  if (tx.amount > 5000) factors.push("Large transaction amount");
-  if (tx.type === "Refund") factors.push("Refund initiated");
-  if (tx.device === "Web") factors.push("Web channel activity");
-  if (hour >= 0 && hour < 6) factors.push("Transaction at unusual hour");
-  if (highRiskCountries.includes(country)) factors.push("High-risk country of origin");
-  if (factors.length === 0) factors.push("No obvious risk factors detected in supplied fields");
-
   const recommendation = decision === "Block" ? "Block and escalate to investigation" : decision === "Review" ? "Mark for manual review" : "Clear the transaction";
 
-  const explanation = `Deterministic mock analysis: base=${base}, score adjustments applied => final ${score}. Factors: ${factors.join(", ")}`;
+  const explanation = `${ANALYSIS_METHOD} produced a priority score of ${score}/100 from the listed input contributions. The score is not a calibrated fraud probability or a trained-model output.`;
 
   return {
-    id: tx.id,
+    transactionId: tx.transactionId,
     riskScore: score,
-    risk: risk as AnalysisResult["risk"],
-    probability,
+    risk: risk as RiskLevel,
     decision: decision as AnalysisResult["decision"],
     factors,
     recommendation,
     explanation,
+    method: ANALYSIS_METHOD,
+    scoreMeaning: "An uncalibrated heuristic priority score (0–100), not a fraud probability or model confidence.",
+    limitations: [
+      "This rules baseline does not use the engineered behavioral features to change its score.",
+      "No trained Transformer, XGBoost, Random Forest, or Isolation Forest adapter is registered; no fraud probability is produced.",
+      "Location is collected but not scored because no validated location-risk source is configured.",
+      "The UTC time rule is a fixed heuristic; account-local timezone is unknown.",
+    ],
   };
 }

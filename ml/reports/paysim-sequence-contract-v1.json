@@ -1,0 +1,153 @@
+{
+  "scope": "PaySim schema and causal customer-recipient sequence feasibility only; no model training or performance results",
+  "source": {
+    "release": "kaggle-author-release-v2",
+    "archive": "ml\\data\\paysim\\paysim-author-release-v2.zip",
+    "archive_sha256": "f7eef9ffad5cfa64a034143a5c9b30491d189420b273d5ad5723ca40b596613d",
+    "csv_member": "PS_20174392719_1491204439457_log.csv"
+  },
+  "schema": {
+    "dataset_schema_version": "layernet-paysim-release-v2.schema.v1",
+    "sequence_schema_version": "layernet-paysim-c-recipient-causal-sequence.v1",
+    "columns": [
+      "step",
+      "type",
+      "amount",
+      "nameOrig",
+      "oldbalanceOrg",
+      "newbalanceOrig",
+      "nameDest",
+      "oldbalanceDest",
+      "newbalanceDest",
+      "isFraud",
+      "isFlaggedFraud"
+    ],
+    "row_count": 6362620,
+    "fraud_label_count": 8213,
+    "rule_flag_positive_count": 16,
+    "observed_step_count": 743,
+    "step_min": 1,
+    "step_max": 743,
+    "transaction_types": [
+      "CASH_IN",
+      "CASH_OUT",
+      "DEBIT",
+      "PAYMENT",
+      "TRANSFER"
+    ]
+  },
+  "entity": {
+    "definition": "nameDest values beginning with C (customer recipients only)",
+    "entity_identifier_preserved_in_metadata": "nameDest",
+    "entity_identifier_is_not_a_model_feature": true,
+    "customer_recipient_entities": 571961,
+    "entities_with_multiple_distinct_steps": 457472,
+    "customer_recipient_transaction_rows": 4211125,
+    "rows_with_at_least_one_strictly_earlier_entity_event": 3591627
+  },
+  "time_and_target": {
+    "time_field": "step (hourly integer boundary)",
+    "target_field": "isFraud (supervised target; never a feature/history field)",
+    "transaction_identifier": null
+  },
+  "split_strategy": "whole-step chronological split: train 1-281, validation 282-355, test 356-743",
+  "splits": [
+    {
+      "name": "train",
+      "step_start": 1,
+      "step_end": 281,
+      "rows": 3820599,
+      "fraud_labels": 3193,
+      "customer_recipient_targets": 2533440,
+      "targets_with_prior_history": 2146962,
+      "targets_without_prior_history": 386478,
+      "prior_step_history_tokens": 14219328
+    },
+    {
+      "name": "validation",
+      "step_start": 282,
+      "step_end": 355,
+      "rows": 1293285,
+      "fraud_labels": 770,
+      "customer_recipient_targets": 860036,
+      "targets_with_prior_history": 741405,
+      "targets_without_prior_history": 118631,
+      "prior_step_history_tokens": 6109570
+    },
+    {
+      "name": "test",
+      "step_start": 356,
+      "step_end": 743,
+      "rows": 1248736,
+      "fraud_labels": 4250,
+      "customer_recipient_targets": 817649,
+      "targets_with_prior_history": 703260,
+      "targets_without_prior_history": 114389,
+      "prior_step_history_tokens": 5860370
+    }
+  ],
+  "sequence_contract": {
+    "history_rule": "history(entity,t) contains eligible nameDest=C transactions only when history.step < target.step",
+    "same_step_policy": "all events at one step are simultaneous; no event in that step is prior history for another",
+    "partition_history_policy": "causal cross-partition context: each target can use earlier events from preceding partitions and its own partition, but only at strictly smaller steps; training targets therefore use training history only",
+    "sequence_unit": "distinct prior hourly step buckets; all events in a bucket are simultaneous and retained together",
+    "maximum_sequence_length": 17,
+    "maximum_sequence_length_unit": "distinct prior step buckets",
+    "truncation": "retain the most recent maximum_sequence_length buckets; discard oldest buckets; never split a bucket",
+    "ordering": "ascending step order across buckets; events inside a bucket are an unordered set with canonical type/amount serialization only",
+    "empty_history": "emit target example with an empty history tuple",
+    "short_history": "retain all available prior step buckets",
+    "history_event_features": [
+      "transaction_type",
+      "amount",
+      "step_gap_to_target"
+    ],
+    "current_target_features": [
+      "transaction_type",
+      "amount"
+    ],
+    "entity_key": "nameDest is retained only as example metadata and is not a model feature",
+    "target_label": "isFraud is stored separately from input features",
+    "excluded_features": [
+      "isFraud (supervised target only)",
+      "isFlaggedFraud (rule-derived flag)",
+      "oldbalanceOrg (excluded balance field)",
+      "newbalanceOrig (excluded balance field)",
+      "oldbalanceDest (excluded balance field)",
+      "newbalanceDest (excluded balance field)",
+      "nameOrig (not the selected entity; excluded from features)",
+      "nameDest (entity key only; not a model feature)",
+      "same-step and future transactions"
+    ],
+    "cap_training_history_distribution": {
+      "target_count": 2533440,
+      "p50_prior_distinct_steps_nearest_rank": 4,
+      "p95_prior_distinct_steps_nearest_rank": 17,
+      "maximum_prior_distinct_steps": 41,
+      "cap_selection": "nearest-rank 95th percentile of prior distinct step buckets per training target; training partition only"
+    }
+  },
+  "leakage_controls": {
+    "source_rows_chronological": true,
+    "whole_step_splits": true,
+    "training_history_is_train_only": true,
+    "validation_and_test_can_use_only_strictly_earlier_partitions_and_steps": true,
+    "validation_test_events_never_enter_earlier_training_histories": true,
+    "labels_and_rule_flag_excluded_from_history_features": true,
+    "balance_fields_excluded_from_features": true,
+    "no_transaction_identifier_claimed": true
+  },
+  "leakage_tests": {
+    "test_file": "ml/tests/test_paysim_data.py",
+    "covered_invariants": [
+      "history steps are strictly smaller than target steps",
+      "same-step events are not prior history",
+      "changing labels does not change history features",
+      "labels, rule flags, balances, and entity IDs are absent from history-event features",
+      "training targets do not consume validation/test events",
+      "merchant recipients are excluded and source entity IDs are preserved",
+      "step ordering, bucket truncation, and repeated construction are deterministic",
+      "streaming audit carries same-step recipient groups across CSV chunk boundaries"
+    ]
+  }
+}

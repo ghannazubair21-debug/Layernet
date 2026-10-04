@@ -1,38 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import TransactionTable from "@/components/TransactionTable";
-import { transactions as mockTransactions } from "@/lib/mockData";
-import { Transaction } from "@/lib/types";
 import EmptyState from "@/components/EmptyState";
-import { getStoredTransactions } from "@/lib/transactionStorage";
+import { useStoredTransactions } from "@/lib/useStoredTransactions";
 
 export default function Page() {
   const [q, setQ] = useState("");
   const [risk, setRisk] = useState<string>("All");
   const [type, setType] = useState<string>("All");
-  const [storedTransactions, setStoredTransactions] = useState<Transaction[]>([]);
-
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      setStoredTransactions(getStoredTransactions());
-    });
-    return () => window.cancelAnimationFrame(frameId);
-  }, []);
-
-  const allTransactions = useMemo(() => {
-    const merged = [...mockTransactions, ...storedTransactions];
-    return merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [storedTransactions]);
+  const { transactions: allTransactions, isLoading } = useStoredTransactions();
 
   const results = useMemo(() => {
     const search = q.trim().toLowerCase();
     return allTransactions.filter((transaction) => {
       const matchesQuery =
         !search ||
-        transaction.id.toLowerCase().includes(search) ||
-        transaction.location.toLowerCase().includes(search);
+        transaction.transactionId.toLowerCase().includes(search) ||
+        transaction.location?.toLowerCase().includes(search);
       const matchesRisk = risk === "All" || transaction.risk === risk;
       const matchesType = type === "All" || transaction.type === type;
       return matchesQuery && matchesRisk && matchesType;
@@ -65,10 +51,13 @@ export default function Page() {
         </div>
       </div>
 
-      {results.length === 0 ? (
-        <EmptyState title="No transactions found" subtitle="Try a different search or filter." />
+      {isLoading ? <p className="layernet-muted">Loading saved analyses…</p> : results.length === 0 ? (
+        <EmptyState
+          title={allTransactions.length === 0 ? "No saved analyses" : "No transactions found"}
+          subtitle={allTransactions.length === 0 ? "Analyze a transaction to create a record in this browser." : "Try a different search or filter."}
+        />
       ) : (
-        <TransactionTable transactions={results as Transaction[]} />
+        <TransactionTable transactions={results} />
       )}
     </section>
   );

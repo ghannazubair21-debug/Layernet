@@ -1,59 +1,36 @@
-async function getHealthData() {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  return {
-    system: "Healthy",
-    api: "Connected",
-    model: "Ready",
-    engine: "Operational",
-    checked: "19 Aug 2026, 12:00 PM",
-  };
-}
-
-export default async function HealthPage() {
-  const health = await getHealthData();
-
+export default function HealthPage() {
   return (
     <section className="space-y-6">
       <div className="space-y-2">
-        <p className="layernet-label layernet-accent">System Monitor</p>
-        <h1 className="layernet-title text-3xl font-bold tracking-tight">Health Check</h1>
-        <p className="layernet-muted max-w-2xl">Live status information fetched from the application health check.</p>
+        <p className="layernet-label layernet-accent">Prototype Configuration</p>
+        <h1 className="layernet-title text-3xl font-bold tracking-tight">System Status</h1>
+        <p className="layernet-muted max-w-2xl">Current application capabilities. Live service and model telemetry is not configured.</p>
       </div>
 
       <div className="grid gap-5 md:grid-cols-3">
         <div className="layernet-card p-6">
-          <p className="layernet-label">Overall system</p>
-          <p className="mt-2 text-xl font-bold text-[var(--success)]">{health.system}</p>
+          <p className="layernet-label">Scoring</p>
+          <p className="mt-2 text-xl font-bold text-[var(--text)]">Rules baseline v1</p>
         </div>
 
         <div className="layernet-card p-6">
-          <p className="layernet-label">API status</p>
-          <p className="mt-2 text-xl font-bold text-[var(--success)]">{health.api}</p>
+          <p className="layernet-label">Trained ML inference</p>
+          <p className="mt-2 text-xl font-bold text-[var(--text)]">Not connected</p>
         </div>
 
         <div className="layernet-card p-6">
-          <p className="layernet-label">Model</p>
-          <p className="mt-2 text-xl font-bold text-[var(--success)]">{health.model}</p>
+          <p className="layernet-label">Transaction storage</p>
+          <p className="mt-2 text-xl font-bold text-[var(--text)]">This browser</p>
         </div>
       </div>
 
       <div className="layernet-card p-6">
-        <p className="layernet-label">Detection engine</p>
-        <p className="mt-2 text-lg font-semibold">{health.engine}</p>
-
-        <div className="mt-4 grid gap-3">
-          <div className="flex items-center justify-between">
-            <span className="layernet-muted">Recent events</span>
-            <span className="text-sm layernet-muted">{health.checked}</span>
-          </div>
-
-          <ul className="mt-2 space-y-2 layernet-muted text-sm">
-            <li>Engine cycle completed — 2s</li>
-            <li>Model confidence stable</li>
-            <li>API error rate &lt; 0.1%</li>
-          </ul>
-        </div>
+        <p className="layernet-label">Known limitations</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 layernet-muted text-sm">
+          <li>Scores are uncalibrated heuristic priorities, not fraud probabilities or validated model predictions.</li>
+          <li>Behavioral features are calculated when identifiers and saved history are available, but they do not currently affect the score.</li>
+          <li>No durable backend, model-serving endpoint, or live health telemetry is configured.</li>
+        </ul>
       </div>
     </section>
   );

@@ -5,9 +5,9 @@ import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const suggestedPrompts = [
-  "Why was this transaction flagged as high risk?",
-  "What factors contributed to this fraud score?",
-  "What should an analyst investigate next?",
+  "Which evidence should an analyst verify before escalating?",
+  "What additional transaction fields would help assess this activity?",
+  "How can I separate observed facts from investigation hypotheses?",
 ];
 
 function getTextFromMessage(message: { parts?: Array<{ type?: string; text?: string }> }) {
@@ -69,8 +69,8 @@ export default function AIChat() {
       <div className="border-b border-[var(--border)] bg-[var(--surface-strong)] px-4 py-4 sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="layernet-label">LayerNet AI Fraud Analyst</p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text)]">Ask about suspicious activity</h2>
+            <p className="layernet-label">AI investigation assistant</p>
+            <h2 className="mt-1 text-xl font-semibold text-[var(--text)]">Ask a general investigation question</h2>
           </div>
           {!followLatest && (
             <button
@@ -101,9 +101,9 @@ export default function AIChat() {
             <div className="flex h-full items-center justify-center">
               <div className="w-full max-w-xl rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-5">
                 <p className="layernet-label">Empty conversation</p>
-                <h3 className="mt-2 text-lg font-semibold text-[var(--text)]">Start with a fraud-analysis question</h3>
+                <h3 className="mt-2 text-lg font-semibold text-[var(--text)]">Start with an investigation question</h3>
                 <p className="mt-2 text-sm text-[var(--muted-text)]">
-                  Ask about risk indicators, score drivers, suspicious patterns, and the next investigation steps.
+                  No transaction record is automatically attached. Include the facts you want to discuss; the assistant cannot see browser history or change a transaction score.
                 </p>
                 <div className="mt-4 flex flex-col gap-2">
                   {suggestedPrompts.map((prompt) => (
@@ -142,7 +142,7 @@ export default function AIChat() {
                     }`}
                   >
                     <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.08em] opacity-80">
-                      <span>{isUser ? "Analyst" : "LayerNet AI"}</span>
+                      <span>{isUser ? "Analyst" : "AI assistant"}</span>
                     </div>
                     <div className="whitespace-pre-wrap break-words text-sm leading-6">
                       {text || (isUser ? "" : "Thinking...")}
@@ -187,7 +187,7 @@ export default function AIChat() {
         <div className="border-t border-[var(--border)] bg-[var(--surface-strong)] p-3 sm:p-4">
           <form onSubmit={(event) => handleSubmit(event)} className="flex flex-col gap-3">
             <textarea
-              aria-label="Message the LayerNet AI Fraud Analyst"
+              aria-label="Message the AI investigation assistant"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -197,14 +197,14 @@ export default function AIChat() {
                 }
               }}
               rows={3}
-              placeholder={isGenerating ? "Generating analysis..." : "Ask about this transaction or suspicious pattern..."}
+              placeholder={isGenerating ? "Generating response..." : "Ask a general investigation question..."}
               disabled={isGenerating}
               className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text)] placeholder:text-[var(--muted-text)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-70"
             />
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-[var(--muted-text)]">
-                {isGenerating ? "The assistant is analyzing the latest fraud signals." : "Press Enter to send. Shift+Enter for a new line."}
+                {isGenerating ? "The assistant is responding to this conversation." : "Replies use only conversation details, do not affect scores, and should be checked against source records."}
               </div>
 
               <div className="flex gap-2">

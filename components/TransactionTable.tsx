@@ -23,7 +23,7 @@ export default function TransactionTable({ transactions }: { transactions: Trans
             <th className="text-left px-4 py-3">Transaction</th>
             <th className="text-left px-4 py-3">Amount</th>
             <th className="text-left px-4 py-3">Risk</th>
-            <th className="text-left px-4 py-3">Device</th>
+            <th className="text-left px-4 py-3">Channel</th>
             <th className="text-left px-4 py-3">Location</th>
             <th className="text-left px-4 py-3">Time</th>
             <th className="text-left px-4 py-3">Status</th>
@@ -31,12 +31,12 @@ export default function TransactionTable({ transactions }: { transactions: Trans
         </thead>
         <tbody>
           {transactions.map((t) => (
-            <tr key={t.id} className="border-t border-[var(--border)]">
-              <td className="px-4 py-3 text-sm text-[var(--text)]">{t.id}</td>
+            <tr key={t.transactionId} className="border-t border-[var(--border)]">
+              <td className="px-4 py-3 text-sm text-[var(--text)]">{t.transactionId}</td>
               <td className="px-4 py-3 text-sm text-[var(--text)]">${t.amount.toFixed(2)}</td>
               <td className="px-4 py-3 text-sm"><RiskBadge risk={t.risk} /></td>
-              <td className="px-4 py-3 text-sm text-[var(--muted-text)]">{t.device}</td>
-              <td className="px-4 py-3 text-sm text-[var(--muted-text)]">{t.location}</td>
+              <td className="px-4 py-3 text-sm text-[var(--muted-text)]">{t.channel ?? "—"}</td>
+              <td className="px-4 py-3 text-sm text-[var(--muted-text)]">{t.location ?? "—"}</td>
               <td className="px-4 py-3 text-sm text-[var(--muted-text)]">{formatTimestamp(t.timestamp)}</td>
               <td className="px-4 py-3 text-sm">{t.status}</td>
             </tr>
