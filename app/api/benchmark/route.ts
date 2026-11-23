@@ -24,6 +24,59 @@ function failure(kind: FailureKind, error: string, status: number): Response {
   return Response.json({ ok: false, error_kind: kind, error }, { status });
 }
 
+/**
+ * Truthful availability probe for the Health screen. Runs a tiny Python check
+ * (no pandas/sklearn imports) so no fs/path references to ml/ appear in this
+ * module — Turbopack would otherwise trace artifact directories into the build.
+ */
+export async function GET(): Promise<Response> {
+  const probe = [
+    "import json, os",
+    "root = os.getcwd()",
+    "checks = {",
+    "  'xgboost': os.path.isfile(os.path.join(root, 'ml', 'artifacts', 'xgboost-v1', 'manifest.json')),",
+    "  'random_forest': os.path.isfile(os.path.join(root, 'ml', 'artifacts', 'random-forest-v1', 'manifest.json')),",
+    "}",
+    "print(json.dumps(checks))",
+  ].join("\n");
+
+  return new Promise<Response>((resolve) => {
+    const child = spawn(PYTHON_RELATIVE_PATH, ["-c", probe], {
+      cwd: process.cwd(),
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let settled = false;
+    const finish = (payload: Record<string, unknown>) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(Response.json(payload));
+      }
+    };
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      finish({ ok: true, available: false, reason: "Availability probe timed out." });
+    }, 15_000);
+    child.on("error", () => {
+      finish({ ok: true, available: false, reason: "ML virtualenv not found at ml/.venv." });
+    });
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.on("close", (code) => {
+      if (settled) return;
+      try {
+        const models = JSON.parse(stdout) as Record<string, boolean>;
+        finish({ ok: true, available: code === 0 && Boolean(models.xgboost && models.random_forest), models });
+      } catch {
+        finish({ ok: true, available: false, reason: "Availability probe returned malformed output." });
+      }
+    });
+  });
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {

@@ -34,3 +34,15 @@ export function cn(...classes: ClassValue[]): string {
   classes.forEach(normalize);
   return res.join(" ");
 }
+
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Format a stored transaction amount for display (e.g. $1,000,000.00). */
+export function formatUsd(amount: number) {
+  return usdFormatter.format(amount);
+}

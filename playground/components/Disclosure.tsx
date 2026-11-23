@@ -19,7 +19,7 @@ export default function Disclosure({ summary, children, defaultOpen = false }: D
         aria-expanded={open}
         aria-controls={contentId}
         onClick={() => setOpen((v) => !v)}
-        className="px-3 py-2 bg-gray-100 rounded"
+        className="layernet-button px-3 py-2 text-sm"
       >
         {summary}
       </button>

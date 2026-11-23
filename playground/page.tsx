@@ -15,7 +15,7 @@ export default function PlaygroundPage() {
   ];
 
   return (
-    <main className="p-6 max-w-4xl mx-auto">
+    <section className="mx-auto max-w-4xl p-6">
       <h1 className="text-2xl font-semibold mb-4">Accessible Component Fundamentals — Playground</h1>
 
       <section className="mb-6">
@@ -24,7 +24,7 @@ export default function PlaygroundPage() {
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="px-3 py-2 bg-blue-600 text-white rounded"
+          className="layernet-button layernet-button--primary px-3 py-2 text-sm"
         >
           Open Modal
         </button>
@@ -58,7 +58,7 @@ export default function PlaygroundPage() {
         </Disclosure>
       </section>
 
-      <section className="mt-8 p-4 border rounded bg-gray-50">
+      <section className="layernet-card mt-8 p-4">
         <h3 className="font-semibold mb-2">Keyboard testing</h3>
         <ul className="list-disc pl-5">
           <li>Tab</li>
@@ -70,6 +70,6 @@ export default function PlaygroundPage() {
           <li>End</li>
         </ul>
       </section>
-    </main>
+    </section>
   );
 }

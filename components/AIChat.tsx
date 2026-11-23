@@ -137,7 +137,7 @@ export default function AIChat() {
                   <div
                     className={`max-w-[82%] rounded-2xl border px-4 py-3 shadow-sm ${
                       isUser
-                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                        ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
                         : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text)]"
                     }`}
                   >

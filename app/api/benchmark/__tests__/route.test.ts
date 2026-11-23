@@ -7,7 +7,7 @@ vi.mock("node:child_process", () => {
 });
 
 import { spawn } from "node:child_process";
-import { POST } from "@/app/api/benchmark/route";
+import { GET, POST } from "@/app/api/benchmark/route";
 
 type FakeChild = EventEmitter & {
   stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
@@ -174,5 +174,50 @@ describe("POST /api/benchmark", () => {
     expect(child.kill).toHaveBeenCalled();
     const payload = await response.json();
     expect(payload.error_kind).toBe("timeout");
+  });
+});
+
+describe("GET /api/benchmark (availability probe)", () => {
+  let child: FakeChild;
+
+  beforeEach(() => {
+    child = makeChild();
+    vi.mocked(spawn).mockReturnValue(child as never);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("reports available when both artifact manifests exist", async () => {
+    const pending = GET();
+    await flushMicrotasks();
+    child.stdout.emit("data", Buffer.from(JSON.stringify({ xgboost: true, random_forest: true })));
+    child.emit("close", 0);
+    const response = await pending;
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.available).toBe(true);
+    expect(payload.models).toEqual({ xgboost: true, random_forest: true });
+  });
+
+  it("reports unavailable when an artifact is missing", async () => {
+    const pending = GET();
+    await flushMicrotasks();
+    child.stdout.emit("data", Buffer.from(JSON.stringify({ xgboost: true, random_forest: false })));
+    child.emit("close", 0);
+    const response = await pending;
+    const payload = await response.json();
+    expect(payload.available).toBe(false);
+  });
+
+  it("reports unavailable when the virtualenv cannot start", async () => {
+    const pending = GET();
+    await flushMicrotasks();
+    child.emit("error", new Error("ENOENT"));
+    const response = await pending;
+    const payload = await response.json();
+    expect(payload.available).toBe(false);
+    expect(payload.reason).toMatch(/virtualenv/);
   });
 });

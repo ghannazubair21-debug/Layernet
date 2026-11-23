@@ -8,7 +8,6 @@ vi.mock("@ai-sdk/react", () => ({
 
 vi.mock("ai", () => ({
   DefaultChatTransport: class {
-    constructor(_options?: Record<string, unknown>) {}
   },
 }));
 
@@ -16,6 +15,7 @@ import { useChat } from "@ai-sdk/react";
 import AIChat from "@/components/AIChat";
 
 const mockedUseChat = vi.mocked(useChat);
+type ChatReturn = ReturnType<typeof useChat>;
 
 function makeChatReturn(overrides: Record<string, unknown> = {}) {
   return {
@@ -48,7 +48,7 @@ function assistantMsg(text: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockedUseChat.mockReturnValue(makeChatReturn() as any);
+  mockedUseChat.mockReturnValue(makeChatReturn() as unknown as ChatReturn);
 });
 
 describe("AIChat", () => {
@@ -93,7 +93,7 @@ describe("AIChat", () => {
           userMsg("What should I investigate?"),
           assistantMsg("Review the source transaction records first."),
         ],
-      }) as any,
+      }) as unknown as ChatReturn,
     );
 
     render(<AIChat />);
@@ -111,7 +111,7 @@ describe("AIChat", () => {
       makeChatReturn({
         status: "submitted",
         messages: [],
-      }) as any,
+      }) as unknown as ChatReturn,
     );
 
     render(<AIChat />);
@@ -138,7 +138,7 @@ describe("AIChat", () => {
         messages: [
           assistantMsg("Investigating the available evidence..."),
         ],
-      }) as any,
+      }) as unknown as ChatReturn,
     );
 
     render(<AIChat />);
@@ -162,7 +162,7 @@ describe("AIChat", () => {
       makeChatReturn({
         error: new Error("AI request failed"),
         regenerate,
-      }) as any,
+      }) as unknown as ChatReturn,
     );
 
     render(<AIChat />);
@@ -191,7 +191,7 @@ describe("AIChat", () => {
     mockedUseChat.mockReturnValue(
       makeChatReturn({
         sendMessage,
-      }) as any,
+      }) as unknown as ChatReturn,
     );
 
     render(<AIChat />);

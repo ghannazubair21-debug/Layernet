@@ -65,7 +65,7 @@ export default function Tabs({ tabs, defaultIndex = 0 }: TabsProps) {
               aria-selected={selected === i}
               aria-controls={panelId}
               tabIndex={selected === i ? 0 : -1}
-              className={`px-3 py-1 rounded ${selected === i ? "bg-blue-600 text-white" : "bg-gray-100"}`}
+              className={`rounded-lg px-3 py-1 text-sm transition-colors ${selected === i ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "bg-[var(--surface-strong)] text-[var(--text)] hover:bg-[var(--rose-tint)]"}`}
               onClick={() => setSelected(i)}
               onKeyDown={(e) => onKeyDown(e, i)}
             >

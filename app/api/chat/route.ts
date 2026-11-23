@@ -15,6 +15,11 @@ import {
 
 export const maxDuration = 30;
 
+/** Truthful configuration probe for the Health screen. Never exposes the key itself. */
+export async function GET() {
+  return Response.json({ configured: Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY) });
+}
+
 export async function POST(request: Request) {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return Response.json(

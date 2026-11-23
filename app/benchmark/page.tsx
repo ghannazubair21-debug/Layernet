@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { FlaskConical, Upload } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import Panel from "@/components/Panel";
 import {
   MAX_CSV_BYTES,
   runBenchmark,
@@ -10,15 +12,6 @@ import {
 } from "@/lib/benchmark";
 
 const DISPLAY_ROW_LIMIT = 100;
-
-function readFileText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Could not read the uploaded file."));
-    reader.readAsText(file);
-  });
-}
 
 const METRIC_LABELS: { key: keyof BenchmarkMetrics; label: string }[] = [
   { key: "pr_auc", label: "PR-AUC" },
@@ -33,21 +26,30 @@ function formatMetric(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(4);
 }
 
+function readFileText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read the uploaded file."));
+    reader.readAsText(file);
+  });
+}
+
 function MetricsTable({ title, metrics }: { title: string; metrics: Record<string, BenchmarkMetrics> }) {
   const families = Object.keys(metrics);
   return (
-    <div className="layernet-card p-4">
-      <p className="layernet-label">{title}</p>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm">
+    <div>
+      {title ? <p className="layernet-label">{title}</p> : null}
+      <div className={title ? "mt-3 overflow-x-auto" : "overflow-x-auto"}>
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="text-left layernet-muted">
-              <th className="py-1 pr-4">Model</th>
+            <tr className="text-left text-[11px] uppercase tracking-[0.06em] text-[var(--muted-text)]">
+              <th className="py-1.5 pr-4">Model</th>
               {METRIC_LABELS.map(({ label }) => (
-                <th key={label} className="py-1 pr-4">{label}</th>
+                <th key={label} className="py-1.5 pr-4">{label}</th>
               ))}
-              <th className="py-1 pr-4">Threshold</th>
-              <th className="py-1">TP / TN / FP / FN</th>
+              <th className="py-1.5 pr-4">Threshold</th>
+              <th className="py-1.5">TP / TN / FP / FN</th>
             </tr>
           </thead>
           <tbody>
@@ -55,12 +57,12 @@ function MetricsTable({ title, metrics }: { title: string; metrics: Record<strin
               const entry = metrics[family];
               return (
                 <tr key={family} className="border-t border-[var(--border)]">
-                  <td className="py-1 pr-4 font-medium">{family}</td>
+                  <td className="py-2 pr-4 font-medium text-[var(--text)]">{family}</td>
                   {METRIC_LABELS.map(({ key }) => (
-                    <td key={key} className="py-1 pr-4">{formatMetric(entry[key])}</td>
+                    <td key={key} className="ln-data py-2 pr-4 text-[var(--text)]">{formatMetric(entry[key])}</td>
                   ))}
-                  <td className="py-1 pr-4">{entry.threshold}</td>
-                  <td className="py-1">
+                  <td className="ln-data py-2 pr-4 text-[var(--muted-text)]">{entry.threshold}</td>
+                  <td className="ln-data py-2 text-[var(--muted-text)]">
                     {entry.true_positives} / {entry.true_negatives} / {entry.false_positives} / {entry.false_negatives}
                   </td>
                 </tr>
@@ -104,83 +106,107 @@ export default function BenchmarkPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <PageHeader
+        eyebrow="Intelligence"
         title="ML Benchmark Replay"
         subtitle="Score genuine ULB/Worldline dataset rows with the saved trained models. Server-side inference only."
       />
 
-      <div role="note" className="layernet-card border-l-4 border-[var(--warning)] p-4">
-        <p className="font-semibold">ULB benchmark inference — not live real-world transaction prediction.</p>
-        <p className="mt-1 text-sm layernet-muted">
+      <div role="note" className="ln-enter rounded-lg border border-[var(--rose-gold)]/40 border-l-4 border-l-[var(--rose-gold)] bg-[var(--rose-tint)] px-4 py-3.5">
+        <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
+          <FlaskConical aria-hidden="true" className="size-4 text-[var(--rose-gold)]" />
+          ULB benchmark inference — not live real-world transaction prediction.
+        </p>
+        <p className="mt-1.5 text-sm text-[var(--muted-text)]">
           Models were trained and evaluated on the public ULB/Worldline credit-card dataset. Uploads must contain the
           published columns (Time, Amount, V1–V28; optional Class). Scores are uncalibrated ranking scores, not
           calibrated fraud probabilities. Use the Analysis page for the rules-based baseline on ordinary transactions.
         </p>
       </div>
 
-      <div className="layernet-card p-4">
+      <Panel title="Dataset upload" className="ln-enter">
         <label className="block">
-          <span className="text-sm font-medium">ULB dataset CSV</span>
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            aria-label="ULB dataset CSV"
-            className="mt-2 block w-full text-sm"
-            onChange={(event) => void handleFile(event.target.files?.[0])}
-          />
+          <span className="text-sm font-medium text-[var(--text)]">ULB dataset CSV</span>
+          <span className="mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--rose-soft)] bg-[var(--surface-strong)]/60 px-4 py-8 transition-colors hover:border-[var(--primary)] hover:bg-[var(--rose-tint)]/60">
+            <Upload aria-hidden="true" className="size-6 text-[var(--primary)]" />
+            <span className="text-sm text-[var(--muted-text)]">Choose a CSV file with genuine ULB rows</span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              aria-label="ULB dataset CSV"
+              className="sr-only"
+              onChange={(event) => void handleFile(event.target.files?.[0])}
+            />
+          </span>
         </label>
-        <p className="mt-2 text-xs layernet-muted">
+        <p className="mt-2.5 text-xs text-[var(--muted-text)]">
           Required columns: Time, Amount, V1–V28. Optional Class enables evaluation on the uploaded rows. Maximum 5,000 rows / 2 MB.
         </p>
-        {fileName ? <p className="mt-2 text-sm">Selected: {fileName}</p> : null}
-        {loading ? <p className="mt-2 text-sm layernet-muted" role="status">Running server-side inference…</p> : null}
-        {error ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
-      </div>
+        {fileName ? <p className="ln-data mt-2 text-sm text-[var(--text)]">Selected: {fileName}</p> : null}
+        {loading ? (
+          <p className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-text)]" role="status">
+            <span aria-hidden="true" className="layernet-spin inline-block size-3.5 rounded-full border-2 border-[var(--rose-soft)] border-t-[var(--primary)]" />
+            Running server-side inference…
+          </p>
+        ) : null}
+        {error ? <p role="alert" className="mt-2 rounded-lg bg-[var(--danger-tint)] px-3 py-2 text-sm text-[var(--danger)]">{error}</p> : null}
+      </Panel>
 
       {result ? (
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="ln-enter-stagger space-y-4">
+          <p className="layernet-label">Uploaded dataset results · scope: rows in your CSV only</p>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div className="layernet-card p-4">
               <p className="layernet-label">Rows scored</p>
-              <p className="text-2xl font-bold">{result.row_count}</p>
+              <p className="ln-data mt-1.5 text-[26px] font-semibold leading-none text-[var(--text)]">{result.row_count}</p>
             </div>
             <div className="layernet-card p-4">
               <p className="layernet-label">Labels uploaded</p>
-              <p className="text-2xl font-bold">{result.labels_present ? "Yes" : "No"}</p>
+              <p className="ln-data mt-1.5 text-[26px] font-semibold leading-none text-[var(--text)]">{result.labels_present ? "Yes" : "No"}</p>
             </div>
             <div className="layernet-card p-4">
               <p className="layernet-label">Model agreement</p>
-              <p className="text-2xl font-bold">{(result.comparison.agreement_rate * 100).toFixed(1)}%</p>
+              <p className="ln-data mt-1.5 text-[26px] font-semibold leading-none text-[var(--text)]">{(result.comparison.agreement_rate * 100).toFixed(1)}%</p>
             </div>
             <div className="layernet-card p-4">
               <p className="layernet-label">Flagged (score ≥ threshold)</p>
-              <p className="text-sm mt-1">
-                {Object.entries(result.comparison.positives)
-                  .map(([family, count]) => `${family}: ${count}`)
-                  .join(" · ")}
-              </p>
+              <ul className="mt-2 space-y-1">
+                {Object.entries(result.comparison.positives).map(([family, count]) => (
+                  <li key={family} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="ln-data text-xs text-[var(--muted-text)]">{family}</span>
+                    <span className="ln-data font-semibold text-[var(--text)]">{count}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
-          {result.models.map((model) => (
-            <div key={model.family} className="layernet-card p-4">
-              <p className="font-semibold">{model.family}</p>
-              <p className="text-xs layernet-muted mt-1">
-                Model version {model.model_version} · frozen threshold {model.threshold} · {model.score_meaning}
-              </p>
-            </div>
-          ))}
+          <div className="grid gap-4 md:grid-cols-2">
+            {result.models.map((model) => (
+              <div key={model.family} className="layernet-card p-4">
+                <p className="text-sm font-semibold text-[var(--text)]">{model.family}</p>
+                <p className="ln-data mt-1 text-xs text-[var(--muted-text)]">
+                  version {model.model_version} · frozen threshold {model.threshold}
+                </p>
+                <p className="mt-1.5 text-xs text-[var(--muted-text)]">{model.score_meaning}</p>
+              </div>
+            ))}
+          </div>
 
           {result.uploaded_row_metrics ? (
-            <MetricsTable title="Evaluation on uploaded rows" metrics={result.uploaded_row_metrics} />
+            <Panel title="Evaluation on uploaded rows" className="ln-enter">
+              <MetricsTable title="" metrics={result.uploaded_row_metrics} />
+            </Panel>
           ) : null}
-          <p className="text-sm layernet-muted">{result.metrics_note}</p>
+          <p className="text-sm text-[var(--muted-text)]">{result.metrics_note}</p>
 
           {result.models.some((model) => model.recorded_test_metrics) ? (
-            <details className="layernet-card p-4">
-              <summary className="cursor-pointer font-medium">Recorded original held-out test metrics (reference)</summary>
-              <div className="mt-3 space-y-3">
+            <details className="layernet-card ln-enter p-4">
+              <summary className="cursor-pointer text-sm font-medium text-[var(--text)]">
+                Recorded original held-out test metrics (reference)
+              </summary>
+              <div className="mt-4 space-y-5">
                 {result.models
                   .filter((model) => model.recorded_test_metrics)
                   .map((model) => (
@@ -194,41 +220,42 @@ export default function BenchmarkPage() {
             </details>
           ) : null}
 
-          <div className="layernet-card p-4">
-            <p className="layernet-label">
-              Predictions {result.row_count > DISPLAY_ROW_LIMIT ? `(first ${DISPLAY_ROW_LIMIT} of ${result.row_count} rows)` : ""}
-            </p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left layernet-muted">
-                    <th className="py-1 pr-4">Row</th>
-                    <th className="py-1 pr-4">Time</th>
-                    <th className="py-1 pr-4">Amount</th>
-                    <th className="py-1 pr-4">Class</th>
-                    <th className="py-1 pr-4">XGBoost score</th>
-                    <th className="py-1 pr-4">XGBoost pred</th>
-                    <th className="py-1 pr-4">RF score</th>
-                    <th className="py-1">RF pred</th>
+          <Panel
+            title={`Predictions${result.row_count > DISPLAY_ROW_LIMIT ? ` (first ${DISPLAY_ROW_LIMIT} of ${result.row_count} rows)` : ""}`}
+            className="ln-enter"
+            bodyClassName="p-0"
+          >
+            <div className="max-h-[560px] overflow-auto" tabIndex={0} role="region" aria-label="Per-row benchmark predictions">
+              <table className="w-full min-w-[720px] text-sm">
+                <thead className="sticky top-0 z-[1]">
+                  <tr className="bg-[var(--surface-strong)] text-left text-[11px] uppercase tracking-[0.06em] text-[var(--muted-text)]">
+                    <th className="px-4 py-2.5">Row</th>
+                    <th className="px-4 py-2.5">Time</th>
+                    <th className="px-4 py-2.5">Amount</th>
+                    <th className="px-4 py-2.5">Class</th>
+                    <th className="px-4 py-2.5">XGBoost score</th>
+                    <th className="px-4 py-2.5">XGBoost pred</th>
+                    <th className="px-4 py-2.5">RF score</th>
+                    <th className="px-4 py-2.5">RF pred</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.rows.slice(0, DISPLAY_ROW_LIMIT).map((row) => (
-                    <tr key={row.row} className="border-t border-[var(--border)]">
-                      <td className="py-1 pr-4">{row.row}</td>
-                      <td className="py-1 pr-4">{row.Time}</td>
-                      <td className="py-1 pr-4">{row.Amount.toFixed(2)}</td>
-                      <td className="py-1 pr-4">{row.class ?? "—"}</td>
-                      <td className="py-1 pr-4">{row.xgboost.score.toFixed(4)}</td>
-                      <td className="py-1 pr-4">{row.xgboost.prediction}</td>
-                      <td className="py-1 pr-4">{row.random_forest.score.toFixed(4)}</td>
-                      <td className="py-1">{row.random_forest.prediction}</td>
+                    <tr key={row.row} className="border-t border-[var(--border)] transition-colors hover:bg-[var(--rose-tint)]/40">
+                      <td className="ln-data px-4 py-2 text-[var(--muted-text)]">{row.row}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--muted-text)]">{row.Time}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--text)]">{row.Amount.toFixed(2)}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--muted-text)]">{row.class ?? "—"}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--primary)]">{row.xgboost.score.toFixed(4)}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--text)]">{row.xgboost.prediction}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--primary)]">{row.random_forest.score.toFixed(4)}</td>
+                      <td className="ln-data px-4 py-2 text-[var(--text)]">{row.random_forest.prediction}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </div>
       ) : null}
     </section>

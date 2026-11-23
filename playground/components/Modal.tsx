@@ -136,7 +136,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
         <div className="mt-4 flex justify-end">
           <button
             type="button"
-            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+            className="layernet-button px-3 py-1 text-sm"
             onClick={onClose}
           >
             Close
