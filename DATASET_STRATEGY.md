@@ -1,7 +1,7 @@
 # LayerNet dataset strategy
 
 **Decision date:** 2026-10-04
-**Scope:** Dataset selection and leakage-aware evaluation design. PaySim source/access and causal customer-recipient sequence feasibility are verified; no PaySim model has been trained.
+**Scope:** Dataset decisions and leakage-aware evaluation evidence. PaySim's source/access, causal recipient-history feasibility, temporal experiment, and replay verification are documented below. The replay reproduced saved aggregate metrics but did not recreate original row-level predictions.
 
 ## FCA APP go/no-go verification
 
@@ -37,11 +37,11 @@ PaySim's author-attributed Kaggle release is now verified as Version 2 with a CC
 
 IEEE-CIS is the next candidate with an inspectable official schema and explicit academic-use permission: Kaggle lists transaction/identity files, `TransactionID` joins, `isFraud`, relative `TransactionDT`, amount, card/address/product fields, and device identity columns. Its rules allow non-commercial academic research and education but prohibit redistribution. Its schema does **not** document a person/account key; `card1`–`card6` are card attributes, and identity/device fields are missing for many transactions. It can support a separate chronological card-attribute/device-context benchmark, not personalized customer baselines. [Official IEEE-CIS data page](https://www.kaggle.com/competitions/ieee-fraud-detection/data) · [Official competition rules](https://www.kaggle.com/competitions/ieee-fraud-detection/rules)
 
-PaySim is now feasible for a **narrowed synthetic customer-recipient temporal study**, while IEEE-CIS remains an option for a separate card/device/context benchmark. Neither supports claims about real-world personalized fraud behavior. FCA APP remains gated by its current data dictionary and data-use terms.
+PaySim is feasible for a **narrow synthetic recipient-history temporal experiment** using C-prefixed `nameDest` entities and strictly earlier `step` history. This is not sender-personalized behavior. IEEE-CIS remains only a candidate for a separate card-attribute/device-context benchmark; the reviewed experiment manifests contain no IEEE-CIS run. Neither dataset supports claims about real-world personalized fraud behavior. FCA APP remains gated by its current data dictionary and data-use terms.
 
 ## Current pipeline and ULB/Worldline limits
 
-The existing `ml/` pipeline is a ULB/Worldline binary-classification baseline. It expects `Time`, `Amount`, `V1`–`V28`, and `Class`; uses `log1p(Amount)`, cyclic elapsed-time features, and the PCA components; and creates chronological 60/20/20 splits with tied times kept together. The model-training command is an XGBoost baseline, but the raw CSV is not bundled. No trained artifact or result is claimed.
+The ULB/Worldline pipeline expects `Time`, `Amount`, `V1`–`V28`, and `Class`; uses `log1p(Amount)`, cyclic elapsed-time features, and the PCA components; and creates chronological 60/20/20 splits with tied times kept together. Completed ULB XGBoost, Random Forest, Isolation Forest, and ensemble experiment manifests are recorded under `ml/artifacts/xgboost-v1/`, `ml/artifacts/random-forest-v1/`, `ml/artifacts/isolation-forest-v1/`, and `ml/artifacts/ensemble-v1/`. Those results are benchmark evidence for this dataset only; they do not establish account-level behavior. The raw CSV is not bundled in the repository.
 
 The dataset has 284,807 transactions from two days in September 2013, including 492 frauds (0.172%). Its visible fields are elapsed seconds, amount, 28 identity-protecting PCA components, and the binary fraud label. It is useful for a conventional, highly imbalanced fraud benchmark and a chronological evaluation. It has no account/customer identifier, transaction type, device, merchant, location, or channel field. `Time` orders the overall file but cannot form user histories. Therefore it cannot validate account-level behavior, personal baselines, device/location/channel changes, or user-sequence models. The PCA fields also do not provide human-readable evidence. BERD identifies Worldline and ULB as the creators and points to Kaggle for full access; its record does not itself state a dataset license, so retain Kaggle's current terms with any research copy. [BERD dataset record](https://berd-platform.de/records/qcqqe-g6q16) · [Kaggle source](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)
 
@@ -61,7 +61,7 @@ Dataset size, counts, or features above describe cited releases unless explicitl
 
 ### A. Traditional fraud benchmark
 
-Keep ULB/Worldline as the first supervised benchmark for the current XGBoost pipeline and later comparable traditional baselines. Report it only as performance on this two-day anonymized card dataset. Use fraud-sensitive metrics (especially average precision / PR-AUC, recall and precision at a threshold selected on validation) and disclose the extreme base rate. Do not interpret uncalibrated model scores as probabilities.
+Use ULB/Worldline for the completed XGBoost, Random Forest, Isolation Forest, and validation-selected ensemble benchmark experiments documented in their manifests. Report them only as performance on this two-day anonymized card dataset. Use fraud-sensitive metrics (especially average precision / PR-AUC, recall and precision at a threshold selected on validation) and disclose the extreme base rate. Do not interpret uncalibrated model scores as probabilities.
 
 ### B. Behavioral and sequence research
 
@@ -69,7 +69,7 @@ FCA APP remains the best conceptual match, but its current decision is **NO-GO**
 
 ### C. Experiment-to-dataset mapping
 
-- ULB: amount/time/PCA supervised benchmark and chronological XGBoost baseline.
+- ULB: amount/time/PCA benchmark experiments for XGBoost, Random Forest, Isolation Forest, and the validation-selected ensemble; see the four artifact manifests named above.
 - FCA APP (preferred, gated): per-person/account behavioral baselines, causal transaction-history features, and temporal sequence experiments for APP fraud labels.
 - PaySim: per-recipient causal transaction history and sequence experiments using amount, transaction type, and hourly gaps; no source-person personalization, device, geographic location, or channel claims.
 - IEEE-CIS (optional separate track): conventional supervised benchmark and exploratory card-field/device-context analysis, with identity missingness reported. No customer-level claims.
@@ -87,8 +87,18 @@ FCA APP remains the best conceptual match, but its current decision is **NO-GO**
 
 Do **not** concatenate ULB, PaySim, IEEE-CIS, FCA APP, or Handbook rows into one training table or one headline score. They differ in transaction domain, identity semantics, time encoding, feature schema, label-generation process, and synthetic/real status. Maintain versioned dataset-specific schemas and feature adapters; compare results side by side with clear scope. Cross-dataset transfer can be a later, explicitly defined experiment after compatible labels/features and terms are established.
 
-## PaySim sequence feasibility status
+## PaySim temporal experiment and replay status
 
-Phase 10's dataset report is at `ml/reports/paysim-sequence-contract-v1.json`. It pins the author release hash and the split steps (train 1–281, validation 282–355, test 356–743). Its sequence contract groups simultaneous same-hour events, permits only strictly earlier steps as history, allows validation/test targets to use earlier partition context, excludes labels/rule flags/balances/entity IDs from model inputs, and derives the maximum history length from training targets only. The 95th-percentile cap is 17 distinct prior step buckets; truncation keeps the most recent whole buckets. This establishes a dataset/sequence contract only: no temporal model has been designed or trained, and the supported entity is recipient-side `nameDest` only.
+The Phase 10 dataset/sequence report is `ml/reports/paysim-sequence-contract-v1.json`; the Phase 11 materialization record is `ml/reports/paysim-sequence-materialization-v1.json`. The source is PaySim author release Version 2 (archive SHA-256 `f7eef9ffad5cfa64a034143a5c9b30491d189420b273d5ad5723ca40b596613d`). The supported entity is C-prefixed recipient `nameDest`, the target is the current transaction's `isFraud`, and history contains only events with strictly smaller `step`. Same-step transactions are simultaneous and excluded from history. Whole-step splits are train 1–281, validation 282–355, and test 356–743. Validation/test targets may use strictly earlier context from preceding partitions; later events never enter earlier target histories. The sequence contract uses up to 17 prior step buckets, retaining the newest whole buckets. Model inputs exclude labels, `isFlaggedFraud`, balances, entity identifiers, and future/same-step events. PaySim is synthetic mobile-money data: this experiment does not establish sender-personalized behavior, device/location/channel intelligence, or real-world banking generalization.
 
-Run or regenerate the Phase 10 report with `ml/.venv/Scripts/python -m layernet_ml.cli validate-paysim-sequences --archive ml/data/paysim/paysim-author-release-v2.zip --output ml/reports/paysim-sequence-contract-v1.json`. Phase 11 adds `iter_paysim_archive_sequences`, a chunked lazy loader that consumes that report and retains no expanded sequence artifact. The `materialize-paysim-sequences` command streams all recipient examples to verify counts against Phase 10 and writes a compact reproducibility manifest. It does not train a model. The next research phase is the temporal-model experiment using this loader, with leakage-safe chronological evaluation.
+Phase 12 trained and saved three artifacts under `ml/artifacts/paysim-temporal-v1/`: a current-transaction-only SGD control, a flattened-history SGD temporal baseline, and one small TransformerEncoder. Their scores are uncalibrated decision scores/logits, not probabilities. Each model's threshold was selected on validation by maximizing F1 over the precision-recall-curve thresholds; ties prefer higher precision, then the higher threshold. The train/validation/test boundaries above were retained, and the final test partition was used once for measurement after thresholds were frozen.
+
+Phase 13B's replay report, `ml/reports/paysim-temporal-reproduction-v1.md`, records a PASS: saved model and dataset/contract hashes matched; all three validation thresholds and validation metrics, and all reported test metrics, reproduced within absolute and relative tolerances of `1e-10` (confusion counts exact). The replay performed no training or test-based selection; it checked 860,036 validation targets first, then evaluated 817,649 test targets. Reproduced test results are:
+
+| Model | Frozen validation threshold | PR-AUC | Average Precision | ROC-AUC | Precision | Recall | F1 | TP | TN | FP | FN |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Current-only control | 5.869246482849121 | 0.033573001984945054 | 0.03860775928674746 | 0.8355716396475126 | 0.027524004012611063 | 0.7230588235294118 | 0.05302938791005885 | 3073 | 704824 | 108575 | 1177 |
+| Temporal SGD baseline | 11.335100173950195 | 0.07960732924771989 | 0.0803969248906291 | 0.867372727790131 | 0.133440961977398 | 0.564 | 0.2158195651195246 | 2397 | 797833 | 15566 | 1853 |
+| Temporal Transformer | -0.3519427180290222 | 0.14759999719607347 | 0.14578967124048028 | 0.8940755646801805 | 0.16123778501628663 | 0.5590588235294117 | 0.25028968713789107 | 2376 | 801039 | 12360 | 1874 |
+
+The replay recomputed aggregate metrics from the saved models and streamed inputs. Original per-row prediction arrays were not retained, so the replay does **not** establish that original row-level predictions were reconstructed or compared. The sequence contract and materialization records describe their own dataset-construction scope; the completed model experiment and its replay evidence are recorded separately above.

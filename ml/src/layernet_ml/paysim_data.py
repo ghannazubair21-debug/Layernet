@@ -71,6 +71,7 @@ _NUMERIC_COLUMNS = (
     "isFlaggedFraud",
 )
 _SEQUENCE_COLUMNS = ("step", "type", "amount", "nameDest", "isFraud")
+_LABEL_BLIND_PREFLIGHT_COLUMNS = ("step", "type", "amount", "nameDest")
 _TYPE_TO_CODE = {name: index for index, name in enumerate(PAYSIM_TYPES)}
 _CODE_TO_TYPE = dict(enumerate(PAYSIM_TYPES))
 _EVENT_RECORD = struct.Struct("<Bd")
@@ -98,6 +99,7 @@ class PaySimCausalExample:
     """One customer-recipient target and its strictly earlier grouped history."""
 
     entity_id: str
+    source_row_ordinal: int
     target_step: int
     target_type: str
     target_amount: float
@@ -162,6 +164,34 @@ def _validate_chunk(frame: pd.DataFrame, *, previous_step: int | None) -> int:
             raise ValueError(f"PaySim {column} must not contain empty identifiers.")
     if not frame["nameDest"].astype("string").str.startswith(("C", "M")).all():
         raise ValueError("PaySim nameDest contains an unrecognized recipient identifier prefix.")
+    return int(step_values[-1])
+
+
+def _validate_label_blind_preflight_chunk(frame: pd.DataFrame, *, previous_step: int | None) -> int:
+    """Validate sequence-source columns without parsing either label column."""
+    if tuple(frame.columns) != _LABEL_BLIND_PREFLIGHT_COLUMNS:
+        raise ValueError("PaySim label-blind preflight loaded an unexpected column set.")
+    if frame.isna().any().any():
+        missing = sorted(frame.columns[frame.isna().any()].tolist())
+        raise ValueError(f"PaySim sequence source contains missing values in: {', '.join(missing)}")
+    for column in ("step", "amount"):
+        values = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=np.float64)
+        if not np.isfinite(values).all():
+            raise ValueError(f"PaySim field {column} contains non-finite or non-numeric values.")
+    step_values = frame["step"].to_numpy(dtype=np.float64)
+    if (step_values < 1).any() or (step_values > 743).any() or not np.equal(step_values, np.floor(step_values)).all():
+        raise ValueError("PaySim step must be an integer in the verified range 1-743.")
+    if (np.diff(step_values) < 0).any():
+        raise ValueError("PaySim source rows are not chronological by step.")
+    if previous_step is not None and int(step_values[0]) < previous_step:
+        raise ValueError("PaySim source rows are not chronological by step.")
+    if (frame["amount"].to_numpy(dtype=np.float64) < 0).any():
+        raise ValueError("PaySim amount must be non-negative.")
+    if not set(frame["type"].astype(str).unique()).issubset(PAYSIM_TYPES):
+        raise ValueError("PaySim type contains a value outside the verified release categories.")
+    recipient_ids = frame["nameDest"].astype("string")
+    if recipient_ids.str.len().eq(0).any() or not recipient_ids.str.startswith(("C", "M")).all():
+        raise ValueError("PaySim nameDest contains an empty or unrecognized recipient identifier.")
     return int(step_values[-1])
 
 
@@ -243,9 +273,10 @@ class _CausalSequenceBuilder:
                 rows = events_by_entity[entity_id]
                 prior = self._history.get(entity_id)
                 history = self._decode_history(prior, step) if prior is not None else ()
-                for transaction_type, amount, label, _source_order in rows:
+                for transaction_type, amount, label, source_order in rows:
                     yield PaySimCausalExample(
                         entity_id=entity_id,
+                        source_row_ordinal=source_order,
                         target_step=step,
                         target_type=transaction_type,
                         target_amount=amount,
@@ -324,8 +355,9 @@ def validate_paysim_archive(
     *,
     expected_sha256: str = PAYSIM_ARCHIVE_SHA256,
     chunksize: int = 100_000,
+    label_blind: bool = False,
 ) -> dict[str, object]:
-    """Validate the pinned PaySim archive and report causal recipient-history coverage without materializing sequences."""
+    """Validate the pinned archive; label_blind mode never parses fraud-label columns."""
     if not archive_path.is_file():
         raise FileNotFoundError(f"PaySim archive not found: {archive_path}")
     if chunksize < 1:
@@ -347,6 +379,8 @@ def validate_paysim_archive(
     numeric_dtypes["isFraud"] = "int8"
     numeric_dtypes["isFlaggedFraud"] = "int8"
     dtypes = {**numeric_dtypes, "type": "string", "nameOrig": "string", "nameDest": "string"}
+    if label_blind:
+        dtypes = {"step": "int16", "type": "string", "amount": "float64", "nameDest": "string"}
     row_count = 0
     fraud_count = 0
     flagged_count = 0
@@ -391,27 +425,39 @@ def validate_paysim_archive(
             raise ValueError(f"PaySim release header differs from the expected schema: {header!r}")
 
         with archive.open(PAYSIM_CSV_MEMBER) as csv_source:
-            chunks = pd.read_csv(csv_source, dtype=dtypes, chunksize=chunksize)
+            chunks = pd.read_csv(
+                csv_source,
+                dtype=dtypes,
+                chunksize=chunksize,
+                usecols=list(_LABEL_BLIND_PREFLIGHT_COLUMNS) if label_blind else None,
+            )
             for chunk in chunks:
-                previous_source_step = _validate_chunk(chunk, previous_step=previous_source_step)
+                if label_blind:
+                    previous_source_step = _validate_label_blind_preflight_chunk(
+                        chunk, previous_step=previous_source_step
+                    )
+                else:
+                    previous_source_step = _validate_chunk(chunk, previous_step=previous_source_step)
                 row_count += len(chunk)
-                fraud_count += int(chunk["isFraud"].sum())
-                flagged_count += int(chunk["isFlaggedFraud"].sum())
+                if not label_blind:
+                    fraud_count += int(chunk["isFraud"].sum())
+                    flagged_count += int(chunk["isFlaggedFraud"].sum())
                 observed_types.update(chunk["type"].astype(str).unique())
                 steps = chunk["step"].to_numpy(dtype=np.int64)
                 unique_steps.update(int(value) for value in np.unique(steps))
                 step_rows = chunk.groupby("step", sort=True).size()
                 for step_value, count in step_rows.items():
                     split_rows[_split_name(int(step_value))] += int(count)
-                fraud_by_step = chunk.groupby("step", sort=True)["isFraud"].sum()
-                for step_value, count in fraud_by_step.items():
-                    split_fraud[_split_name(int(step_value))] += int(count)
+                if not label_blind:
+                    fraud_by_step = chunk.groupby("step", sort=True)["isFraud"].sum()
+                    for step_value, count in fraud_by_step.items():
+                        split_fraud[_split_name(int(step_value))] += int(count)
 
-                customer_mask = chunk["nameDest"].astype("string").str.startswith("C")
-                customer_rows = chunk.loc[customer_mask]
-                customer_fraud_by_step = customer_rows.groupby("step", sort=True)["isFraud"].sum()
-                for step_value, count in customer_fraud_by_step.items():
-                    split_customer_fraud[_split_name(int(step_value))] += int(count)
+                    customer_mask = chunk["nameDest"].astype("string").str.startswith("C")
+                    customer_rows = chunk.loc[customer_mask]
+                    customer_fraud_by_step = customer_rows.groupby("step", sort=True)["isFraud"].sum()
+                    for step_value, count in customer_fraud_by_step.items():
+                        split_customer_fraud[_split_name(int(step_value))] += int(count)
 
                 grouped = _history_group_counts(chunk)
                 if grouped.empty:
@@ -443,21 +489,26 @@ def validate_paysim_archive(
 
     split_report = []
     for name, (step_start, step_end) in SPLIT_BOUNDARIES.items():
-        split_report.append(
-            {
-                "name": name,
-                "step_start": step_start,
-                "step_end": step_end,
-                "rows": split_rows[name],
-                "fraud_labels": split_fraud[name],
-                "customer_recipient_targets": split_sequence_examples[name],
-                "customer_recipient_fraud_targets": split_customer_fraud[name],
-                "customer_recipient_nonfraud_targets": split_sequence_examples[name] - split_customer_fraud[name],
-                "targets_with_prior_history": split_with_history[name],
-                "targets_without_prior_history": split_sequence_examples[name] - split_with_history[name],
-                "prior_step_history_tokens": split_history_step_tokens[name],
-            }
-        )
+        split = {
+            "name": name,
+            "step_start": step_start,
+            "step_end": step_end,
+            "rows": split_rows[name],
+            "customer_recipient_targets": split_sequence_examples[name],
+            "targets_with_prior_history": split_with_history[name],
+            "targets_without_prior_history": split_sequence_examples[name] - split_with_history[name],
+            "prior_step_history_tokens": split_history_step_tokens[name],
+        }
+        if not label_blind:
+            split.update(
+                {
+                    "fraud_labels": split_fraud[name],
+                    "customer_recipient_fraud_targets": split_customer_fraud[name],
+                    "customer_recipient_nonfraud_targets": split_sequence_examples[name]
+                    - split_customer_fraud[name],
+                }
+            )
+        split_report.append(split)
 
     training_distribution = {
         "target_count": train_target_count,
@@ -467,8 +518,12 @@ def validate_paysim_archive(
         "cap_selection": "nearest-rank 95th percentile of prior distinct step buckets per training target; training partition only",
     }
 
-    return {
-        "scope": "PaySim schema and causal customer-recipient sequence feasibility only; no model training or performance results",
+    report: dict[str, object] = {
+        "scope": (
+            "label-blind PaySim replay preflight; fraud-label columns were not parsed"
+            if label_blind
+            else "PaySim schema and causal customer-recipient sequence feasibility only; no model training or performance results"
+        ),
         "source": {
             "release": PAYSIM_RELEASE_VERSION,
             "archive": str(archive_path),
@@ -480,8 +535,6 @@ def validate_paysim_archive(
             "sequence_schema_version": PAYSIM_SEQUENCE_SCHEMA_VERSION,
             "columns": list(PAYSIM_COLUMNS),
             "row_count": row_count,
-            "fraud_label_count": fraud_count,
-            "rule_flag_positive_count": flagged_count,
             "observed_step_count": len(unique_steps),
             "step_min": min(unique_steps),
             "step_max": max(unique_steps),
@@ -545,6 +598,14 @@ def validate_paysim_archive(
             ],
         },
     }
+    schema_report = report["schema"]
+    assert isinstance(schema_report, dict)
+    if label_blind:
+        schema_report["label_columns_parsed"] = False
+    else:
+        schema_report["fraud_label_count"] = fraud_count
+        schema_report["rule_flag_positive_count"] = flagged_count
+    return report
 
 
 def load_paysim_sequence_contract(contract_path: Path = PAYSIM_CONTRACT_PATH) -> dict[str, object]:
@@ -614,7 +675,7 @@ def load_paysim_sequence_contract(contract_path: Path = PAYSIM_CONTRACT_PATH) ->
 
 
 def _verify_archive_against_contract(
-    audited: dict[str, object], contract: dict[str, object]
+    audited: dict[str, object], contract: dict[str, object], *, label_blind: bool = False
 ) -> None:
     actual_schema = audited["schema"]
     expected_schema = contract["schema"]
@@ -625,7 +686,10 @@ def _verify_archive_against_contract(
     actual_splits = {part["name"]: part for part in audited["splits"]}
     expected_splits = {part["name"]: part for part in contract["splits"]}
     for name in SPLIT_BOUNDARIES:
-        for key in ("rows", "fraud_labels", "customer_recipient_targets", "targets_with_prior_history"):
+        keys = ["rows", "customer_recipient_targets", "targets_with_prior_history"]
+        if not label_blind:
+            keys.append("fraud_labels")
+        for key in keys:
             if actual_splits[name][key] != expected_splits[name][key]:
                 raise ValueError(f"PaySim {name} split {key} differs from the Phase 10 report.")
     if audited["sequence_contract"]["maximum_sequence_length"] != contract["sequence_contract"]["maximum_sequence_length"]:
@@ -662,11 +726,21 @@ class PaySimSequenceReader:
         if digest.hexdigest() != self.audit["source"]["archive_sha256"]:
             raise ValueError("PaySim archive changed after sequence-source validation.")
 
+        max_source_rows: int | None = None
+        if selected is not None:
+            selected_end = max(SPLIT_BOUNDARIES[name][1] for name in selected)
+            max_source_rows = sum(
+                int(part["rows"])
+                for part in self.audit["splits"]
+                if SPLIT_BOUNDARIES[part["name"]][1] <= selected_end
+            )
+
         yield from _iter_validated_archive_sequences(
             self.archive_path,
             self.max_sequence_length,
             self.chunksize,
             target_splits=selected,
+            max_source_rows=max_source_rows,
         )
 
 
@@ -685,14 +759,37 @@ def open_paysim_sequence_reader(
     return PaySimSequenceReader(archive_path, contract, audit, chunksize)
 
 
-def _iter_complete_step_frames(archive_path: Path, chunksize: int) -> Iterator[pd.DataFrame]:
+def open_paysim_label_blind_sequence_reader(
+    archive_path: Path,
+    contract_path: Path = PAYSIM_CONTRACT_PATH,
+    *,
+    chunksize: int = 100_000,
+) -> PaySimSequenceReader:
+    """Open a replay reader whose preflight excludes labels and whose split streams stop at exact row bounds."""
+    if chunksize < 1:
+        raise ValueError("chunksize must be positive.")
+    contract = load_paysim_sequence_contract(contract_path)
+    audit = validate_paysim_archive(archive_path, chunksize=chunksize, label_blind=True)
+    _verify_archive_against_contract(audit, contract, label_blind=True)
+    return PaySimSequenceReader(archive_path, contract, audit, chunksize)
+
+
+def _iter_complete_step_frames(
+    archive_path: Path, chunksize: int, *, max_rows: int | None = None
+) -> Iterator[pd.DataFrame]:
     """Read only sequence columns and retain the trailing tied-step group across chunks."""
     dtypes = {"step": "int16", "type": "string", "amount": "float64", "nameDest": "string", "isFraud": "int8"}
     row_offset = 0
     pending: pd.DataFrame | None = None
     with zipfile.ZipFile(archive_path) as archive:
         with archive.open(PAYSIM_CSV_MEMBER) as source:
-            chunks = pd.read_csv(source, usecols=list(_SEQUENCE_COLUMNS), dtype=dtypes, chunksize=chunksize)
+            chunks = pd.read_csv(
+                source,
+                usecols=list(_SEQUENCE_COLUMNS),
+                dtype=dtypes,
+                chunksize=chunksize,
+                nrows=max_rows,
+            )
             for chunk in chunks:
                 chunk["_source_order"] = np.arange(row_offset, row_offset + len(chunk), dtype=np.int64)
                 row_offset += len(chunk)
@@ -713,9 +810,10 @@ def _iter_validated_archive_sequences(
     max_sequence_length: int,
     chunksize: int,
     target_splits: frozenset[str] | None = None,
+    max_source_rows: int | None = None,
 ) -> Iterator[PaySimCausalExample]:
     builder = _CausalSequenceBuilder(max_sequence_length)
-    for step_frame in _iter_complete_step_frames(archive_path, chunksize):
+    for step_frame in _iter_complete_step_frames(archive_path, chunksize, max_rows=max_source_rows):
         step = int(step_frame["step"].iloc[0])
         if target_splits is not None and step > max(SPLIT_BOUNDARIES[name][1] for name in target_splits):
             break
