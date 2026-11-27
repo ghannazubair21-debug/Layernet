@@ -30,7 +30,7 @@ describe("/api/chat", () => {
   });
 
   it("reports configuration without exposing the key", async () => {
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/chat"));
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload).toEqual({ configured: true });
@@ -39,7 +39,7 @@ describe("/api/chat", () => {
 
   it("reports not configured when the key is absent", async () => {
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/chat"));
     expect(await response.json()).toEqual({ configured: false });
   });
 
@@ -165,5 +165,25 @@ describe("/api/chat", () => {
 
     expect(options.abortSignal?.aborted).toBe(true);
     options.onAbort?.({});
+  });
+
+  it("rejects cross-site and foreign-origin requests before reading the body or calling Gemini", async () => {
+    const crossSite = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Sec-Fetch-Site": "cross-site" },
+      body: JSON.stringify({ messages: [{ id: "1", role: "user", parts: [{ type: "text", text: "hi" }] }] }),
+    }));
+    const foreignOrigin = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "https://evil.example" },
+      body: "{}",
+    }));
+    const rebound = await GET(new Request("http://evil.example/api/chat"));
+
+    for (const response of [crossSite, foreignOrigin, rebound]) {
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ error: "Request origin is not allowed." });
+    }
+    expect(streamText).not.toHaveBeenCalled();
   });
 });

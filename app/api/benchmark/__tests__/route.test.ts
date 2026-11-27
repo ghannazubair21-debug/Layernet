@@ -8,6 +8,7 @@ vi.mock("node:child_process", () => {
 
 import { spawn } from "node:child_process";
 import { GET, HEAD, POST } from "@/app/api/benchmark/route";
+import { acquireBenchmarkSlot } from "@/lib/server/benchmarkSlot";
 
 type FakeChild = EventEmitter & {
   stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
@@ -455,5 +456,25 @@ describe("GET /api/benchmark (availability probe)", () => {
     expect((await pending).status).toBe(499);
     expect(child.kill).toHaveBeenCalledWith("SIGKILL");
     child.emit("close", null, "SIGKILL");
+  });
+
+  it("rejects foreign origins before taking the slot, reading the upload, or spawning Python", async () => {
+    const crossSite = await POST(new Request("http://localhost/api/benchmark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Sec-Fetch-Site": "cross-site" },
+      body: JSON.stringify({ csv: "Time,Amount\n0,1\n" }),
+    }));
+    const rebound = await GET(new Request("http://evil.example/api/benchmark"));
+
+    for (const response of [crossSite, rebound]) {
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ ok: false, error_kind: "input", error: "Request origin is not allowed." });
+    }
+    expect(spawn).not.toHaveBeenCalled();
+
+    // The rejected requests must not leave the single benchmark slot held.
+    const release = acquireBenchmarkSlot();
+    expect(release).not.toBeNull();
+    release?.();
   });
 });

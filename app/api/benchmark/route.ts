@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { acquireBenchmarkSlot } from "@/lib/server/benchmarkSlot";
 import { readBoundedJson } from "@/lib/server/readJsonBody";
+import { checkRequestOrigin } from "@/lib/server/requestGuard";
 import type { BenchmarkMetrics, BenchmarkSuccess } from "@/lib/benchmark";
 
 /**
@@ -172,6 +173,9 @@ export function HEAD(): Response {
 
 /** Truthful availability probe for the Health screen. */
 export async function GET(request: Request): Promise<Response> {
+  const guard = checkRequestOrigin(request);
+  if (!guard.ok) return failure("input", guard.error, guard.status);
+
   const probe = [
     "import json, os",
     "root = os.getcwd()",
@@ -258,6 +262,10 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  // Reject foreign origins before taking the slot or reading the upload.
+  const guard = checkRequestOrigin(request);
+  if (!guard.ok) return failure("input", guard.error, guard.status);
+
   // Acquire capacity before reading so concurrent uploads cannot all consume
   // their body-memory budget while waiting for the Python slot.
   const releaseSlot = acquireBenchmarkSlot();

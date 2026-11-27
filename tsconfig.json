@@ -31,7 +31,7 @@
     "**/*.mts",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "vitest.config.ts",
+    "vitest.config.mts",
     "vitest.setup.ts",
     "playwright.config.ts"
   ],

@@ -9,6 +9,7 @@ import {
 import { parseChatMessages } from "@/lib/server/chatRequest";
 import { acquireChatSlot } from "@/lib/server/chatSlots";
 import { readBoundedJson } from "@/lib/server/readJsonBody";
+import { checkRequestOrigin } from "@/lib/server/requestGuard";
 import {
   AI_SYSTEM_PROMPT,
   GEMINI_MODEL_ID,
@@ -20,11 +21,16 @@ const MAX_CHAT_REQUEST_BYTES = 128_000;
 const CHAT_TIMEOUT_MS = 25_000;
 
 /** Truthful configuration probe for the Health screen. Never exposes the key itself. */
-export async function GET() {
+export async function GET(request: Request) {
+  const guard = checkRequestOrigin(request);
+  if (!guard.ok) return Response.json({ error: guard.error }, { status: guard.status });
   return Response.json({ configured: Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY) });
 }
 
 export async function POST(request: Request) {
+  const guard = checkRequestOrigin(request);
+  if (!guard.ok) return Response.json({ error: guard.error }, { status: guard.status });
+
   const parsedBody = await readBoundedJson(request, MAX_CHAT_REQUEST_BYTES);
   if (!parsedBody.ok) {
     return Response.json({ error: parsedBody.error }, { status: parsedBody.status });
