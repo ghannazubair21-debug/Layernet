@@ -53,7 +53,7 @@ function greetingFor(hour: number) {
 }
 
 export default function Page() {
-  const { transactions, isLoading } = useStoredTransactions();
+  const { transactions, isLoading, loadError } = useStoredTransactions();
   const [rangeIndex, setRangeIndex] = useState(0);
   // Client clock (minute resolution) — the server snapshot keeps hydration stable.
   const nowMinute = useSyncExternalStore(subscribeToClock, readClockMinute, () => 0);
@@ -102,32 +102,34 @@ export default function Page() {
         }
       />
 
+      {loadError ? <p role="alert" className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-tint)] px-4 py-3 text-sm text-[var(--text)]">{loadError} Dashboard totals are unavailable until the local history can be read.</p> : null}
+
       {/* KPI row — counts of actual saved records */}
       <div className="ln-enter-stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total analyzed"
-          value={isLoading ? "…" : metrics.total}
-          hint={`${range.label.toLowerCase()} · this browser`}
+          value={isLoading ? "…" : loadError ? "—" : metrics.total}
+          hint={loadError ? "History unavailable" : `${range.label.toLowerCase()} · this browser`}
           icon={Receipt}
         />
         <StatCard
           label="High risk"
-          value={isLoading ? "…" : metrics.priorityCounts.High}
-          hint={shareHint(metrics.priorityCounts.High, metrics.total)}
+          value={isLoading ? "…" : loadError ? "—" : metrics.priorityCounts.High}
+          hint={loadError ? "History unavailable" : shareHint(metrics.priorityCounts.High, metrics.total)}
           icon={ShieldAlert}
           tone="high"
         />
         <StatCard
           label="Medium risk"
-          value={isLoading ? "…" : metrics.priorityCounts.Medium}
-          hint={shareHint(metrics.priorityCounts.Medium, metrics.total)}
+          value={isLoading ? "…" : loadError ? "—" : metrics.priorityCounts.Medium}
+          hint={loadError ? "History unavailable" : shareHint(metrics.priorityCounts.Medium, metrics.total)}
           icon={TriangleAlert}
           tone="warning"
         />
         <StatCard
           label="Low risk"
-          value={isLoading ? "…" : metrics.priorityCounts.Low}
-          hint={shareHint(metrics.priorityCounts.Low, metrics.total)}
+          value={isLoading ? "…" : loadError ? "—" : metrics.priorityCounts.Low}
+          hint={loadError ? "History unavailable" : shareHint(metrics.priorityCounts.Low, metrics.total)}
           icon={CircleCheck}
           tone="success"
         />
@@ -179,6 +181,8 @@ export default function Page() {
         >
           {isLoading ? (
             <div className="p-4"><SkeletonRows rows={3} /></div>
+          ) : loadError ? (
+            <p className="p-4 text-sm text-[var(--muted-text)]">Watchlist unavailable while saved history cannot be read.</p>
           ) : highPriority.length === 0 ? (
             <EmptyState
               icon={ShieldAlert}
@@ -218,6 +222,8 @@ export default function Page() {
         >
           {isLoading ? (
             <div className="p-4"><SkeletonRows rows={4} /></div>
+          ) : loadError ? (
+            <p className="p-4 text-sm text-[var(--muted-text)]">Recent records unavailable while saved history cannot be read.</p>
           ) : recent.length === 0 ? (
             <EmptyState
               title="No saved analyses"
@@ -254,7 +260,7 @@ export default function Page() {
             </li>
             <li className="flex items-center justify-between gap-3">
               <span className="text-[var(--muted-text)]">Storage</span>
-              <span className="text-right text-xs text-[var(--text)]">This browser · {transactions.length} {transactions.length === 1 ? "record" : "records"}</span>
+              <span className="text-right text-xs text-[var(--text)]">{loadError ? "History unavailable" : `This browser · ${transactions.length} ${transactions.length === 1 ? "record" : "records"}`}</span>
             </li>
           </ul>
           <Link href="/health" className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--primary)] hover:text-[var(--primary-hover)]">

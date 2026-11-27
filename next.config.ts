@@ -5,6 +5,17 @@ const nextConfig: NextConfig = {
   // uses 127.0.0.1 while the dev server initializes with `localhost`, so allow
   // that origin for dev-only chunks and HMR (no effect on production builds).
   allowedDevOrigins: ["127.0.0.1"],
+  headers: async () => [
+    {
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      ],
+    },
+  ],
 };
 
 export default nextConfig;

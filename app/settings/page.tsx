@@ -11,9 +11,10 @@ import { transactionService } from "@/lib/transactionService";
 import { GEMINI_MODEL_ID } from "@/lib/ai-config";
 
 export default function SettingsPage() {
-  const { transactions, isLoading } = useStoredTransactions();
+  const { transactions, isLoading, loadError } = useStoredTransactions();
   const [confirming, setConfirming] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [clearError, setClearError] = useState("");
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -32,9 +33,14 @@ export default function SettingsPage() {
   }, []);
 
   const handleClear = async () => {
-    await transactionService.clear();
-    setConfirming(false);
-    setCleared(true);
+    setClearError("");
+    try {
+      await transactionService.clear();
+      setConfirming(false);
+      setCleared(true);
+    } catch {
+      setClearError("Local data could not be cleared. Check browser storage permissions and try again.");
+    }
   };
 
   return (
@@ -44,6 +50,8 @@ export default function SettingsPage() {
         title="Settings"
         subtitle="Appearance, local data, and integration scope. Preferences persist in this browser."
       />
+
+      {loadError ? <p role="alert" className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-tint)] px-4 py-3 text-sm text-[var(--text)]">{loadError} You can clear the unreadable local store below; no records will be silently replaced.</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Appearance" className="ln-enter">
@@ -61,7 +69,7 @@ export default function SettingsPage() {
             </span>
             <div className="min-w-0">
               <p className="text-sm text-[var(--text)]">
-                <span className="ln-data font-semibold">{isLoading ? "…" : transactions.length}</span> analyzed records
+                <span className="ln-data font-semibold">{isLoading ? "…" : loadError ? "Unavailable" : transactions.length}</span> analyzed records
                 are stored in this browser only. Nothing is sent to a server except benchmark CSV uploads and AI chat
                 messages you explicitly submit.
               </p>
@@ -72,8 +80,11 @@ export default function SettingsPage() {
               ) : confirming ? (
                 <div className="mt-3 rounded-lg bg-[var(--danger-tint)] p-3">
                   <p className="text-sm text-[var(--danger)]">
-                    Delete all {transactions.length} saved records? This cannot be undone.
+                    {loadError
+                      ? "The saved records could not be read. Delete the local transaction store? This cannot be undone."
+                      : `Delete all ${transactions.length} saved records? This cannot be undone.`}
                   </p>
+                  {clearError ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{clearError}</p> : null}
                   <div className="mt-2.5 flex gap-2">
                     <button
                       type="button"
@@ -90,7 +101,7 @@ export default function SettingsPage() {
               ) : (
                 <button
                   type="button"
-                  disabled={isLoading || transactions.length === 0}
+                  disabled={isLoading || (transactions.length === 0 && !loadError)}
                   onClick={() => setConfirming(true)}
                   className="layernet-button mt-3 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 >

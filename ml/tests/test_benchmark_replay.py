@@ -5,6 +5,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import joblib
@@ -15,12 +16,15 @@ from sklearn.linear_model import LogisticRegression
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from layernet_ml.benchmark_replay import (
+    MAX_CSV_BYTES,
+    MAX_COLUMNS,
     MAX_ROWS,
     BenchmarkInputError,
     ModelAvailabilityError,
     load_benchmark_bundle,
     load_default_bundles,
     main,
+    parse_benchmark_csv,
     run_benchmark,
     validate_benchmark_frame,
 )
@@ -99,6 +103,69 @@ def make_stub_bundles() -> dict[str, tuple[object, dict[str, object]]]:
 
 
 class BenchmarkValidationTests(unittest.TestCase):
+    def test_csv_byte_cap_is_rejected_before_pandas_parses(self) -> None:
+        with patch("layernet_ml.benchmark_replay.pd.read_csv") as read_csv:
+            with self.assertRaisesRegex(BenchmarkInputError, "byte upload limit"):
+                parse_benchmark_csv("x" * (MAX_CSV_BYTES + 1))
+            read_csv.assert_not_called()
+
+    def test_csv_column_cap_is_rejected_before_pandas_parses_rows(self) -> None:
+        oversized_header = ",".join(f"column_{index}" for index in range(MAX_COLUMNS + 1))
+        with patch("layernet_ml.benchmark_replay.pd.read_csv") as read_csv:
+            with self.assertRaisesRegex(BenchmarkInputError, str(MAX_COLUMNS)):
+                parse_benchmark_csv(oversized_header + "\n")
+            read_csv.assert_not_called()
+
+    def test_duplicate_raw_headers_are_rejected_before_pandas_mangles_them(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        columns[-1] = "Amount"
+        with patch("layernet_ml.benchmark_replay.pd.read_csv") as read_csv:
+            with self.assertRaisesRegex(BenchmarkInputError, "duplicate column names"):
+                parse_benchmark_csv(",".join(columns) + "\n")
+            read_csv.assert_not_called()
+
+    def test_csv_wide_data_record_is_rejected_before_pandas_parses(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        oversized_record = ",".join("0" for _ in range(MAX_COLUMNS + 1))
+        text = ",".join(columns) + "\n" + oversized_record + "\n"
+        with patch("layernet_ml.benchmark_replay.pd.read_csv") as read_csv:
+            with self.assertRaisesRegex(BenchmarkInputError, "more than 64 columns"):
+                parse_benchmark_csv(text)
+            read_csv.assert_not_called()
+
+    def test_quoted_commas_do_not_count_as_extra_csv_columns(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        values = ["0"] * len(columns)
+        values[0] = '"' + ",".join("0" for _ in range(MAX_COLUMNS + 1)) + '"'
+
+        parsed = parse_benchmark_csv(",".join(columns) + "\n" + ",".join(values))
+
+        self.assertEqual(len(parsed.columns), len(columns))
+        self.assertEqual(len(parsed), 1)
+
+    def test_csv_row_cap_stops_parsing_at_one_row_over_limit(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        row = ",".join("0" for _ in columns)
+        text = ",".join(columns) + "\n" + (row + "\n") * (MAX_ROWS + 1)
+
+        parsed = parse_benchmark_csv(text)
+
+        self.assertEqual(len(parsed), MAX_ROWS + 1)
+        with self.assertRaisesRegex(BenchmarkInputError, str(MAX_ROWS)):
+            validate_benchmark_frame(parsed)
+
+    def test_cli_rejects_oversized_input_before_loading_models(self) -> None:
+        import contextlib
+
+        oversized = ",".join(["Time", "Amount", *(f"V{i}" for i in range(1, 29))])
+        oversized += "\n" + (",".join("0" for _ in range(30)) + "\n") * (MAX_ROWS + 1)
+        stdout = io.StringIO()
+        with patch("layernet_ml.benchmark_replay.load_default_bundles") as load_bundles:
+            with contextlib.redirect_stdout(stdout):
+                code = main([], input_text=oversized)
+        self.assertEqual(code, 2)
+        load_bundles.assert_not_called()
+
     def test_valid_frame_keeps_rows_and_order(self) -> None:
         frame = make_frame(rows=5)
         validated = validate_benchmark_frame(frame)
@@ -153,6 +220,13 @@ class BenchmarkValidationTests(unittest.TestCase):
     def test_row_cap_is_enforced(self) -> None:
         with self.assertRaisesRegex(BenchmarkInputError, str(MAX_ROWS)):
             validate_benchmark_frame(make_frame(rows=MAX_ROWS + 1))
+
+    def test_column_cap_is_enforced(self) -> None:
+        frame = make_frame()
+        for index in range(MAX_COLUMNS):
+            frame[f"extra_{index}"] = 0
+        with self.assertRaisesRegex(BenchmarkInputError, str(MAX_COLUMNS)):
+            validate_benchmark_frame(frame)
 
     def test_labels_are_optional(self) -> None:
         validated = validate_benchmark_frame(make_frame(with_labels=False))
@@ -279,6 +353,24 @@ class BenchmarkCliTests(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertTrue(payload["ok"])
             self.assertEqual(payload["row_count"], 4)
+
+    def test_cli_reads_csv_from_bounded_binary_stdin(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_stub_artifact(root, "xgboost-v1", "xgboost_model.joblib", "xgboost")
+            write_stub_artifact(
+                root, "random-forest-v1", "random_forest_model.joblib", "random_forest"
+            )
+            csv_text = make_frame(rows=3).to_csv(index=False)
+            fake_stdin = io.TextIOWrapper(io.BytesIO(csv_text.encode("utf-8")))
+            import contextlib
+
+            stdout = io.StringIO()
+            with patch("layernet_ml.benchmark_replay.sys.stdin", fake_stdin):
+                with contextlib.redirect_stdout(stdout):
+                    code = main(["--artifacts-root", str(root)])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(stdout.getvalue())["row_count"], 3)
 
     def test_cli_input_error_exit_code(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

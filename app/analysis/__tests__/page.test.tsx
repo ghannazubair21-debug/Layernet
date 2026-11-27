@@ -22,12 +22,27 @@ describe("transaction analysis form", () => {
     await user.click(screen.getByRole("button", { name: "Analyze Transaction" }));
 
     expect(screen.getByText("Transaction ID is required")).toBeInTheDocument();
-    expect(screen.getByText("Amount must be greater than 0")).toBeInTheDocument();
+    expect(screen.getByText("Amount must be a finite number greater than 0")).toBeInTheDocument();
     expect(screen.getByText("Location is required")).toBeInTheDocument();
     expect(screen.getByText("Enter a valid timestamp")).toBeInTheDocument();
     expect(
       screen.getByText("Fill the form and click Analyze to see the current rules baseline and its evidence."),
     ).toBeInTheDocument();
+  });
+
+  it("rejects whitespace-only transaction IDs and locations", async () => {
+    const user = userEvent.setup();
+    render(<Page />);
+
+    await user.type(screen.getByLabelText("Transaction ID"), "   ");
+    await user.type(screen.getByLabelText("Amount"), "100");
+    await user.type(screen.getByLabelText("Location"), "   ");
+    fireEvent.change(screen.getByLabelText("Timestamp", { exact: false }), { target: { value: TIMESTAMP } });
+    await user.click(screen.getByRole("button", { name: "Analyze Transaction" }));
+
+    expect(screen.getByText("Transaction ID is required")).toBeInTheDocument();
+    expect(screen.getByText("Location is required")).toBeInTheDocument();
+    expect(screen.queryByText("Transaction analyzed and saved to History.")).not.toBeInTheDocument();
   });
 
   it("submits valid transaction details and renders the saved rules-baseline result", async () => {

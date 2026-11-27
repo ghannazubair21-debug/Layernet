@@ -3,6 +3,13 @@ import type { RiskLevel, Transaction, TransactionRepository } from "./types";
 export const STORAGE_KEY = "layernet-transactions";
 export const TRANSACTIONS_UPDATED_EVENT = "layernet-transactions-updated";
 
+export class TransactionStorageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TransactionStorageError";
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -61,16 +68,30 @@ function decodeTransaction(value: unknown): Transaction | null {
 
 function readTransactions(): Transaction[] {
   if (typeof window === "undefined") return [];
+
+  let raw: string | null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.map(decodeTransaction).filter((item): item is Transaction => item !== null)
-      : [];
+    raw = window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    return [];
+    throw new TransactionStorageError("Saved transaction history could not be read from this browser.");
   }
+  if (raw === null) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new TransactionStorageError("Saved transaction history is unreadable. Existing data was left unchanged.");
+  }
+  if (!Array.isArray(parsed)) {
+    throw new TransactionStorageError("Saved transaction history has an unsupported format. Existing data was left unchanged.");
+  }
+
+  const decoded = parsed.map(decodeTransaction);
+  if (decoded.some((transaction) => transaction === null)) {
+    throw new TransactionStorageError("Saved transaction history contains unreadable records. Existing data was left unchanged.");
+  }
+  return decoded as Transaction[];
 }
 
 function emitUpdate() {

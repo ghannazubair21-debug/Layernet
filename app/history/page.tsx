@@ -139,7 +139,7 @@ export default function Page() {
   const [type, setType] = useState<string>("All");
   const [sort, setSort] = useState<TransactionSort>({ key: "timestamp", dir: "desc" });
   const [selected, setSelected] = useState<Transaction | null>(null);
-  const { transactions: allTransactions, isLoading } = useStoredTransactions();
+  const { transactions: allTransactions, isLoading, loadError } = useStoredTransactions();
 
   const results = useMemo(() => {
     const search = q.trim().toLowerCase();
@@ -177,6 +177,8 @@ export default function Page() {
         title="Analysis History"
         subtitle="Review previously analyzed transactions. Select a record for full details."
       />
+
+      {loadError ? <p role="alert" className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-tint)] px-4 py-3 text-sm text-[var(--text)]">{loadError} History is unavailable until the local records can be read.</p> : null}
 
       <Panel className="ln-enter" bodyClassName="p-3 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -221,6 +223,8 @@ export default function Page() {
       <Panel className="ln-enter" bodyClassName="p-0">
         {isLoading ? (
           <div className="p-4"><SkeletonRows rows={5} /></div>
+        ) : loadError ? (
+          <p className="p-4 text-sm text-[var(--muted-text)]">Saved records could not be loaded. They have not been changed.</p>
         ) : results.length === 0 ? (
           <EmptyState
             title={allTransactions.length === 0 ? "No saved analyses" : "No transactions found"}

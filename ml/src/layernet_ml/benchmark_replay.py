@@ -18,6 +18,7 @@ Exit codes: 0 success, 2 invalid input, 3 model availability failure,
 from __future__ import annotations
 
 import argparse
+import csv
 import io
 import json
 import sys
@@ -43,6 +44,9 @@ from .pipeline import sha256_file
 
 BENCHMARK_SCHEMA_VERSION = "layernet-ulb-benchmark-replay.v1"
 MAX_ROWS = 5_000
+MAX_COLUMNS = 64
+MAX_CSV_BYTES = 2_000_000
+MAX_CSV_HEADER_BYTES = 16_384
 REQUIRED_INPUT_COLUMNS = (TIME_COLUMN, AMOUNT_COLUMN, *PCA_COLUMNS)
 BENCHMARK_NOTE = (
     "ULB benchmark replay on uploaded dataset rows. Scores are uncalibrated model outputs "
@@ -64,10 +68,85 @@ class ModelAvailabilityError(RuntimeError):
     """A saved artifact is missing, unreadable, or fails its integrity checks."""
 
 
+def _validate_csv_column_width(text: str) -> None:
+    """Reject wide records before pandas can allocate a very large row."""
+    fields_in_record = 1
+    at_field_start = True
+    in_quoted_field = False
+    index = 0
+
+    while index < len(text):
+        character = text[index]
+        if in_quoted_field:
+            if character == '"':
+                if index + 1 < len(text) and text[index + 1] == '"':
+                    index += 2
+                    continue
+                in_quoted_field = False
+            index += 1
+            continue
+
+        if character == '"' and at_field_start:
+            in_quoted_field = True
+        elif character == ",":
+            fields_in_record += 1
+            if fields_in_record > MAX_COLUMNS:
+                raise BenchmarkInputError(
+                    f"Uploaded CSV contains a record with more than {MAX_COLUMNS} columns."
+                )
+            at_field_start = True
+        elif character in "\r\n":
+            fields_in_record = 1
+            at_field_start = True
+        else:
+            at_field_start = False
+        index += 1
+
+
+def parse_benchmark_csv(text: str) -> pd.DataFrame:
+    """Apply byte, header-column, and row limits before expensive inference work."""
+    try:
+        encoded_size = len(text.encode("utf-8", errors="strict"))
+    except UnicodeEncodeError as error:
+        raise BenchmarkInputError("Uploaded CSV must contain valid UTF-8 text.") from error
+    if encoded_size > MAX_CSV_BYTES:
+        raise BenchmarkInputError(
+            f"Uploaded CSV exceeds the {MAX_CSV_BYTES} byte upload limit."
+        )
+
+    header_line = text.partition("\n")[0].removesuffix("\r")
+    if len(header_line.encode("utf-8")) > MAX_CSV_HEADER_BYTES:
+        raise BenchmarkInputError(
+            f"CSV header exceeds the {MAX_CSV_HEADER_BYTES} byte header limit."
+        )
+    try:
+        header = next(csv.reader([header_line], strict=True))
+    except (csv.Error, StopIteration) as error:
+        raise BenchmarkInputError("Uploaded file has an invalid CSV header.") from error
+    if len(set(header)) != len(header):
+        raise BenchmarkInputError("Uploaded CSV contains duplicate column names.")
+    if len(header) > MAX_COLUMNS:
+        raise BenchmarkInputError(
+            f"Uploaded CSV has more than {MAX_COLUMNS} columns; the benchmark replay limit is {MAX_COLUMNS} columns."
+        )
+    _validate_csv_column_width(text)
+
+    try:
+        # Read one row beyond the accepted maximum so validation can reject an
+        # oversized upload without materializing the rest of its row set.
+        return pd.read_csv(io.StringIO(text), nrows=MAX_ROWS + 1)
+    except Exception as error:
+        raise BenchmarkInputError(f"Uploaded file is not a readable CSV: {error}") from error
+
+
 def validate_benchmark_frame(frame: pd.DataFrame) -> pd.DataFrame:
     """Validate uploaded rows without inventing, imputing, or reordering values."""
     if frame.empty:
         raise BenchmarkInputError("Uploaded CSV contains no data rows.")
+    if len(frame.columns) > MAX_COLUMNS:
+        raise BenchmarkInputError(
+            f"Uploaded CSV has {len(frame.columns)} columns; the benchmark replay limit is {MAX_COLUMNS} columns."
+        )
     if frame.columns.duplicated().any():
         raise BenchmarkInputError("Uploaded CSV contains duplicate column names.")
     missing = sorted(set(REQUIRED_INPUT_COLUMNS) - set(frame.columns))
@@ -268,12 +347,21 @@ def main(argv: list[str] | None = None, input_text: str | None = None) -> int:
     if args.artifacts_root is None:
         args.artifacts_root = Path(__file__).resolve().parents[2] / "artifacts"
 
-    text = input_text if input_text is not None else sys.stdin.read()
     try:
-        try:
-            frame = pd.read_csv(io.StringIO(text))
-        except Exception as error:
-            raise BenchmarkInputError(f"Uploaded file is not a readable CSV: {error}") from error
+        if input_text is None:
+            raw_input = sys.stdin.buffer.read(MAX_CSV_BYTES + 1)
+            if len(raw_input) > MAX_CSV_BYTES:
+                raise BenchmarkInputError(
+                    f"Uploaded CSV exceeds the {MAX_CSV_BYTES} byte upload limit."
+                )
+            try:
+                text = raw_input.decode("utf-8", errors="strict")
+            except UnicodeDecodeError as error:
+                raise BenchmarkInputError("Uploaded CSV must contain valid UTF-8 text.") from error
+        else:
+            text = input_text
+
+        frame = parse_benchmark_csv(text)
         validated = validate_benchmark_frame(frame)
         bundles = load_default_bundles(args.artifacts_root)
         result = run_benchmark(validated, bundles)

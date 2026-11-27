@@ -78,9 +78,9 @@ export default function Page() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!id) e.id = "Transaction ID is required";
-    if (amount === "" || amount <= 0) e.amount = "Amount must be greater than 0";
-    if (!location) e.location = "Location is required";
+    if (!id.trim()) e.id = "Transaction ID is required";
+    if (amount === "" || !Number.isFinite(amount) || amount <= 0) e.amount = "Amount must be a finite number greater than 0";
+    if (!location.trim()) e.location = "Location is required";
     if (!timestamp || !Number.isFinite(new Date(timestamp).getTime())) e.timestamp = "Enter a valid timestamp";
     return e;
   }

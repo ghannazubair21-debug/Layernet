@@ -24,7 +24,7 @@ function countBy(values: (string | undefined)[]): { label: string; value: number
 }
 
 export default function Page() {
-  const { transactions, isLoading } = useStoredTransactions();
+  const { transactions, isLoading, loadError } = useStoredTransactions();
   const metrics = summarizeTransactions(transactions);
   const highPriority = transactions.filter((t) => t.risk === "High");
 
@@ -43,6 +43,8 @@ export default function Page() {
         subtitle="Review heuristic decisions for analyses saved in this browser."
       />
 
+      {loadError ? <p role="alert" className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-tint)] px-4 py-3 text-sm text-[var(--text)]">{loadError} Analytics are unavailable until the local records can be read.</p> : null}
+
       <p className="ln-enter rounded-lg border-l-2 border-[var(--rose-gold)] bg-[var(--rose-tint)] px-4 py-3 text-sm text-[var(--muted-text)]">
         These summaries reflect the current rules-based priority score. There are no ground-truth fraud labels here,
         so this page does not report fraud rates or model performance.
@@ -51,7 +53,7 @@ export default function Page() {
       <div className="grid gap-4 lg:grid-cols-12">
         <Panel
           title="Priority score trend"
-          subtitle={`${transactions.length} saved analyses · all time`}
+          subtitle={loadError ? "Saved analyses unavailable" : `${transactions.length} saved analyses · all time`}
           className="ln-enter lg:col-span-8"
         >
           {isLoading ? <SkeletonRows rows={3} /> : <TrendChart points={trendPoints} height={250} />}
@@ -74,23 +76,23 @@ export default function Page() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Panel title="Non-clear decisions" className="ln-enter">
-          <p className="ln-data text-3xl font-semibold text-[var(--text)]">{metrics.nonClearDecisions}</p>
+          <p className="ln-data text-3xl font-semibold text-[var(--text)]">{loadError ? "—" : metrics.nonClearDecisions}</p>
           <p className="mt-2 text-xs text-[var(--muted-text)]">Heuristic decisions marked for review or escalation.</p>
         </Panel>
         <Panel title="Saved analyses" className="ln-enter">
-          <p className="ln-data text-3xl font-semibold text-[var(--text)]">{metrics.total}</p>
+          <p className="ln-data text-3xl font-semibold text-[var(--text)]">{loadError ? "—" : metrics.total}</p>
           <p className="mt-2 text-xs text-[var(--muted-text)]">Stored by this browser.</p>
         </Panel>
         <Panel title="Mean priority score" className="ln-enter">
-          <p className="ln-data text-3xl font-semibold text-[var(--primary)]">{metrics.averagePriorityScore ?? "—"}</p>
+          <p className="ln-data text-3xl font-semibold text-[var(--primary)]">{loadError ? "—" : metrics.averagePriorityScore ?? "—"}</p>
           <p className="mt-2 text-xs text-[var(--muted-text)]">Uncalibrated heuristic score, not probability.</p>
         </Panel>
         <Panel title="High-priority share" className="ln-enter">
           <p className="ln-data text-3xl font-semibold text-[var(--danger)]">
-            {metrics.total ? Math.round((metrics.priorityCounts.High / metrics.total) * 100) : 0}%
+            {loadError ? "—" : `${metrics.total ? Math.round((metrics.priorityCounts.High / metrics.total) * 100) : 0}%`}
           </p>
           <p className="mt-2 text-xs text-[var(--muted-text)]">
-            {metrics.priorityCounts.High} of {metrics.total} saved records rated High.
+            {loadError ? "History unavailable." : `${metrics.priorityCounts.High} of ${metrics.total} saved records rated High.`}
           </p>
         </Panel>
       </div>

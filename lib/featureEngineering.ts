@@ -1,5 +1,5 @@
 import { createBehavioralBaseline, getPriorAccountTransactions } from "./behavioralBaseline";
-import type { TransactionFeatures, TransactionRecord } from "./types";
+import type { BehavioralBaseline, TransactionFeatures, TransactionRecord } from "./types";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -24,6 +24,7 @@ function changedFromPrevious<T>(
 export function engineerTransactionFeatures(
   transaction: TransactionRecord,
   history: readonly TransactionRecord[],
+  baseline: BehavioralBaseline = createBehavioralBaseline(transaction, history),
 ): TransactionFeatures {
   const timestamp = Date.parse(transaction.timestamp);
   if (!Number.isFinite(timestamp)) throw new RangeError("Transaction timestamp must be a valid date.");
@@ -32,7 +33,6 @@ export function engineerTransactionFeatures(
   }
 
   const prior = getPriorAccountTransactions(transaction, history);
-  const baseline = createBehavioralBaseline(transaction, history);
   const date = new Date(timestamp);
   const hourUtc = date.getUTCHours();
   const dayOfWeekUtc = date.getUTCDay();

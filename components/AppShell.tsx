@@ -112,7 +112,7 @@ function SidebarContent({
   onNavigate?: () => void;
   onOpenAssistant: () => void;
 }) {
-  const { transactions } = useStoredTransactions();
+  const { transactions, loadError } = useStoredTransactions();
 
   return (
     <div className="flex h-full flex-col">
@@ -203,8 +203,8 @@ function SidebarContent({
         {!compact && (
           <p className="flex items-center gap-2 px-1 text-[11px] text-[var(--sidebar-text)]">
             <Activity aria-hidden="true" className="size-3.5 text-[var(--rose-gold)]" />
-            Local vault · <span className="ln-data">{transactions.length}</span>{" "}
-            {transactions.length === 1 ? "record" : "records"}
+            Local vault · <span className="ln-data">{loadError ? "unavailable" : transactions.length}</span>{" "}
+            {loadError ? "" : transactions.length === 1 ? "record" : "records"}
           </p>
         )}
       </div>

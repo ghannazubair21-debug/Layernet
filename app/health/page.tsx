@@ -38,7 +38,7 @@ function noopSubscribe() {
 }
 
 export default function HealthPage() {
-  const { transactions } = useStoredTransactions();
+  const { transactions, loadError } = useStoredTransactions();
   const storage = useSyncExternalStore<ProbeState>(
     noopSubscribe,
     () => (storageProbe() ? "ok" : "unavailable"),
@@ -135,7 +135,11 @@ export default function HealthPage() {
             <StatusPill state={storage} okText="This browser" badText="Unavailable" />
           </div>
           <p className="mt-2 text-xs text-[var(--muted-text)]">
-            {storage === "ok" ? `${transactions.length} records in local storage. No durable backend is configured.` : "Local storage is not writable in this context."}
+            {loadError
+              ? "Saved local records could not be read; existing data was left unchanged."
+              : storage === "ok"
+                ? `${transactions.length} records in local storage. No durable backend is configured.`
+                : "Local storage is not writable in this context."}
           </p>
         </div>
       </div>
