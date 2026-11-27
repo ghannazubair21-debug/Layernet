@@ -12,6 +12,7 @@ import { SkeletonRows } from "@/components/LoadingSkeleton";
 import { useStoredTransactions } from "@/lib/useStoredTransactions";
 import type { Transaction } from "@/lib/types";
 import { formatUsd } from "@/lib/utils";
+import { RULES_DECISION_HEADING, RULES_DECISION_LABELS } from "@/lib/transactionStatus";
 
 const detailFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "full",
@@ -95,7 +96,7 @@ function TransactionDetail({ transaction, onClose }: { transaction: Transaction;
           <dl>
             <DetailRow label="Amount" value={formatUsd(transaction.amount)} />
             <DetailRow label="Type" value={transaction.type} />
-            <DetailRow label="Status" value={transaction.status} />
+            <DetailRow label={RULES_DECISION_HEADING} value={RULES_DECISION_LABELS[transaction.status]} />
             <DetailRow label="Timestamp" value={`${detailFormatter.format(new Date(transaction.timestamp))} UTC`} />
             <DetailRow label="Account ID" value={transaction.accountId ?? "Not provided"} />
             <DetailRow label="Channel" value={transaction.channel ?? "Not provided"} />

@@ -30,6 +30,18 @@ describe("transaction analysis form", () => {
     ).toBeInTheDocument();
   });
 
+  it("moves focus to the first invalid field after a failed submit", async () => {
+    const user = userEvent.setup();
+    render(<Page />);
+
+    await user.click(screen.getByRole("button", { name: "Analyze Transaction" }));
+    expect(screen.getByLabelText("Transaction ID")).toHaveFocus();
+
+    await user.type(screen.getByLabelText("Transaction ID"), "TX-FOCUS-1");
+    await user.click(screen.getByRole("button", { name: "Analyze Transaction" }));
+    expect(screen.getByLabelText("Amount")).toHaveFocus();
+  });
+
   it("rejects whitespace-only transaction IDs and locations", async () => {
     const user = userEvent.setup();
     render(<Page />);

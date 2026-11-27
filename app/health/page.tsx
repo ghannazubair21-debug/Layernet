@@ -122,7 +122,13 @@ export default function HealthPage() {
             <StatusPill state={ai} okText="Key configured" badText={ai === "error" ? "Probe failed" : "Not configured"} />
           </div>
           <p className="mt-2 text-xs text-[var(--muted-text)]">
-            {ai === "ok" ? `Gemini (${GEMINI_MODEL_ID}) · general investigation chat only.` : "Set GOOGLE_GENERATIVE_AI_API_KEY to enable the assistant."}
+            {ai === "ok"
+              ? `Gemini (${GEMINI_MODEL_ID}) · general investigation chat only. A configured key does not prove the provider is reachable; that is shown only when a chat reply succeeds.`
+              : ai === "loading"
+                ? "Checking server configuration…"
+                : ai === "error"
+                  ? "The configuration probe could not be reached. This does not mean the key is missing."
+                  : "Set GOOGLE_GENERATIVE_AI_API_KEY to enable the assistant."}
           </p>
         </div>
 

@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import RiskBadge from "./RiskBadge";
 import { cn, formatUsd } from "@/lib/utils";
+import { RULES_DECISION_HEADING, RULES_DECISION_LABELS } from "@/lib/transactionStatus";
 
 const formatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -85,7 +86,7 @@ export default function TransactionTable({
               <SortHeader label="Risk" />
               <SortHeader label="Score" sortKey="riskScore" sort={sort} onSort={onSort} />
               <SortHeader label="Time (UTC)" sortKey="timestamp" sort={sort} onSort={onSort} />
-              {!compact && <SortHeader label="Status" />}
+              {!compact && <SortHeader label={RULES_DECISION_HEADING} />}
             </tr>
           </thead>
           <tbody>
@@ -120,7 +121,7 @@ export default function TransactionTable({
                 {!compact && (
                   <td className="px-4 py-3">
                     <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_STYLES[t.status])}>
-                      {t.status}
+                      {RULES_DECISION_LABELS[t.status]}
                     </span>
                   </td>
                 )}
@@ -146,7 +147,7 @@ export default function TransactionTable({
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted-text)]">
                 <span>{t.type}</span>
                 {t.channel ? <span>{t.channel}</span> : null}
-                <span className={cn("rounded-full px-2 py-0.5 font-medium", STATUS_STYLES[t.status])}>{t.status}</span>
+                <span className={cn("rounded-full px-2 py-0.5 font-medium", STATUS_STYLES[t.status])}>{RULES_DECISION_LABELS[t.status]}</span>
               </div>
               <p className="ln-data mt-1.5 text-[11px] text-[var(--muted-text)]">{formatTimestamp(t.timestamp)} UTC</p>
             </>

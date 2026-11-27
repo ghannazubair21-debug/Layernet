@@ -15,6 +15,9 @@ function currentLocalDateTimeInput() {
   return local.toISOString().slice(0, 16);
 }
 
+/** DOM ids of the validated inputs, keyed by validation error key. */
+const FIELD_IDS = { id: "tx-id", amount: "tx-amount", location: "tx-location", timestamp: "tx-timestamp" } as const;
+
 const inputClass =
   "mt-1.5 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] transition-colors placeholder:text-[var(--muted-text)] hover:border-[var(--rose-soft)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20";
 
@@ -92,7 +95,12 @@ export default function Page() {
 
     const e = validate();
     setErrors(e);
-    if (Object.keys(e).length) return;
+    if (Object.keys(e).length) {
+      // Move keyboard/screen-reader focus to the first invalid field, in form order.
+      const firstInvalid = (["id", "amount", "location", "timestamp"] as const).find((key) => e[key]);
+      if (firstInvalid) document.getElementById(FIELD_IDS[firstInvalid])?.focus();
+      return;
+    }
 
     submissionGuardRef.current = true;
     setLoading(true);
