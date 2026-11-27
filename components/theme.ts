@@ -48,4 +48,30 @@ export function saveSettings(theme: ThemeMode) {
   const settings: LayerNetSettings = { theme };
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   applyTheme(theme);
+  window.dispatchEvent(new Event(SETTINGS_CHANGE_EVENT));
+}
+
+/** Fired in the current tab whenever settings are saved (storage only fires cross-tab). */
+export const SETTINGS_CHANGE_EVENT = "layernet-settings-change";
+
+/** useSyncExternalStore subscription for the saved theme preference. */
+export function subscribeToSettings(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === SETTINGS_KEY) onChange();
+  };
+  window.addEventListener(SETTINGS_CHANGE_EVENT, onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(SETTINGS_CHANGE_EVENT, onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function readThemeMode(): ThemeMode {
+  return readSettings().theme;
+}
+
+export function serverThemeMode(): ThemeMode {
+  return "system";
 }

@@ -1,28 +1,40 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navigation from "@/components/Navigation";
+import AppShell from "@/components/AppShell";
 import ThemeProvider from "@/components/ThemeProvider";
-import { Geist } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { THEME_INIT_SCRIPT } from "@/lib/themeInitScript";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", axes: ["opsz"] });
 
 export const metadata: Metadata = {
-  title: "LayerNet | Fraud Intelligence Research Prototype",
-  description: "Transaction analysis and investigation with a transparent heuristic baseline.",
+  title: "LayerNet | Financial Intelligence",
+  description:
+    "Fraud investigation and financial intelligence with a transparent rules baseline and ULB benchmark replay.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" data-theme="light" className={cn("font-sans", geist.variable)}>
-      <body className="layernet-shell min-h-screen">
+    <html
+      lang="en"
+      data-theme="light"
+      className={cn(geistSans.variable, geistMono.variable, fraunces.variable)}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Apply the saved layernet-settings theme before first paint (no light flash). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="layernet-shell min-h-screen font-sans">
         <ThemeProvider />
-        <Navigation />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {children}
-        </main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

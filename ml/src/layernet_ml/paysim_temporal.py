@@ -28,6 +28,7 @@ from .paysim_data import (
     SPLIT_BOUNDARIES,
     PaySimCausalExample,
     PaySimSequenceReader,
+    open_paysim_label_blind_sequence_reader,
     open_paysim_sequence_reader,
 )
 
@@ -73,6 +74,9 @@ TRANSFORMER_CONFIG: dict[str, Any] = {
     "shuffle": "deterministic permutation within each streaming batch",
 }
 MODEL_KEYS = ("current_only_control", "temporal_baseline", "temporal_transformer")
+REPLAY_FLOAT_ATOL = 1e-10
+REPLAY_FLOAT_RTOL = 1e-10
+REPLAY_TEST_TARGET_COUNT = 817_649
 METRIC_KEYS = (
     "pr_auc",
     "average_precision",
@@ -421,6 +425,174 @@ def verify_temporal_artifact_manifest(artifact_directory: Path) -> dict[str, Any
             if float(metrics["threshold"]) != float(model["threshold"]):
                 raise ValueError(f"Temporal {metric_name} threshold differs from the frozen threshold for {name}.")
     return manifest
+
+
+class PaySimReplayValidationError(ValueError):
+    """Validation did not reproduce; carries evidence and indicates test scoring was not started."""
+
+    def __init__(self, report: dict[str, Any]) -> None:
+        self.report = report
+        super().__init__("PaySim validation replay did not match the saved manifest; test evaluation was not run.")
+
+
+def _metric_comparison(stored: dict[str, Any], reproduced: dict[str, Any]) -> dict[str, Any]:
+    comparisons: dict[str, Any] = {}
+    exact_keys = {"true_positives", "true_negatives", "false_positives", "false_negatives"}
+    for key in METRIC_KEYS:
+        expected = stored[key]
+        actual = reproduced[key]
+        if key in exact_keys:
+            matches = int(expected) == int(actual)
+        else:
+            matches = bool(
+                np.isclose(
+                    float(expected),
+                    float(actual),
+                    atol=REPLAY_FLOAT_ATOL,
+                    rtol=REPLAY_FLOAT_RTOL,
+                )
+            )
+        comparisons[key] = {"stored": expected, "reproduced": actual, "matches": matches}
+    return {"metrics": comparisons, "matches": all(value["matches"] for value in comparisons.values())}
+
+
+def replay_paysim_temporal_metrics(
+    archive_path: Path,
+    artifact_directory: Path = TEMPORAL_ARTIFACT_DIRECTORY,
+    *,
+    contract_path: Path,
+) -> dict[str, Any]:
+    """Reproduce saved PaySim metrics without fitting; test labels are streamed only after validation passes."""
+    manifest = verify_temporal_artifact_manifest(artifact_directory)
+    archive_path = archive_path.resolve()
+    artifact_directory = artifact_directory.resolve()
+    contract_path = contract_path.resolve()
+    source_hash = sha256_file(archive_path)
+    if source_hash != manifest["dataset"]["archive_sha256"]:
+        raise ValueError("Replay archive hash differs from the saved temporal manifest.")
+
+    reader = open_paysim_label_blind_sequence_reader(archive_path, contract_path)
+    models: dict[str, Any] = {
+        "current_only_control": joblib.load(artifact_directory / manifest["models"]["current_only_control"]["artifact"]),
+        "temporal_baseline": joblib.load(artifact_directory / manifest["models"]["temporal_baseline"]["artifact"]),
+    }
+    loaded_transformer, _ = _load_transformer(
+        artifact_directory / manifest["models"]["temporal_transformer"]["artifact"]
+    )
+    models["temporal_transformer"] = loaded_transformer
+
+    validation_labels, validation_scores = _predict_batches(reader, "validation", models)
+    expected_validation_count = next(
+        int(part["recipient_targets"]) for part in manifest["splits"] if part["name"] == "validation"
+    )
+    if len(validation_labels) != expected_validation_count:
+        raise ValueError(
+            f"Validation replay yielded {len(validation_labels)} targets; manifest expects {expected_validation_count}."
+        )
+
+    threshold_checks: dict[str, Any] = {}
+    validation_checks: dict[str, Any] = {}
+    validation_ok = True
+    for name in MODEL_KEYS:
+        model_record = manifest["models"][name]
+        selected_threshold, selection = choose_validation_f1_threshold(validation_labels, validation_scores[name])
+        recorded_threshold = float(model_record["threshold"])
+        selection_threshold = float(model_record["threshold_selection"]["selected_threshold"])
+        threshold_matches = bool(
+            np.isclose(selected_threshold, recorded_threshold, atol=REPLAY_FLOAT_ATOL, rtol=REPLAY_FLOAT_RTOL)
+            and np.isclose(selected_threshold, selection_threshold, atol=REPLAY_FLOAT_ATOL, rtol=REPLAY_FLOAT_RTOL)
+        )
+        threshold_checks[name] = {
+            "reproduced": selected_threshold,
+            "manifest_threshold": recorded_threshold,
+            "manifest_selection_threshold": selection_threshold,
+            "selection": selection,
+            "matches": threshold_matches,
+        }
+        reproduced_validation = evaluate_scores(
+            validation_labels,
+            _score_bundle(models[name], name, validation_scores[name]),
+            recorded_threshold,
+        )
+        validation_checks[name] = _metric_comparison(model_record["validation_metrics"], reproduced_validation)
+        validation_ok = validation_ok and threshold_matches and validation_checks[name]["matches"]
+
+    preflight_schema = reader.audit["schema"]
+    split_rows = {part["name"]: int(part["rows"]) for part in reader.audit["splits"]}
+    validation_end_source_row = split_rows["train"] + split_rows["validation"]
+    report: dict[str, Any] = {
+        "experiment_id": manifest["experiment"]["experiment_id"],
+        "dataset": {
+            "archive": str(archive_path),
+            "archive_sha256": source_hash,
+            "contract": str(contract_path),
+            "contract_sha256": sha256_file(contract_path),
+            "schema_version": manifest["dataset"]["dataset_schema_version"],
+            "sequence_contract_version": manifest["sequence_contract_version"],
+            "feature_schema_version": manifest["feature_schema_version"],
+        },
+        "artifacts": {
+            name: {
+                "file": manifest["models"][name]["artifact"],
+                "sha256": manifest["models"][name]["artifact_sha256"],
+                "loaded": True,
+            }
+            for name in MODEL_KEYS
+        },
+        "replay": {
+            "training_executed": False,
+            "test_based_selection": False,
+            "preflight_label_columns_parsed": bool(preflight_schema["label_columns_parsed"]),
+            "validation_stream_max_source_rows": validation_end_source_row,
+            "test_label_stream_opened_after_validation_checks": False,
+            "float_absolute_tolerance": REPLAY_FLOAT_ATOL,
+            "float_relative_tolerance": REPLAY_FLOAT_RTOL,
+            "confusion_counts_exact": True,
+        },
+        "validation": {
+            "target_count": len(validation_labels),
+            "thresholds": threshold_checks,
+            "metrics": validation_checks,
+            "passed": validation_ok,
+        },
+        "test_evaluation_performed": False,
+    }
+    if not validation_ok:
+        raise PaySimReplayValidationError(report)
+
+    # Validation thresholds and metrics are now verified; only now may test labels enter evaluation.
+    report["replay"]["test_label_stream_opened_after_validation_checks"] = True
+    test_labels, test_scores = _predict_batches(reader, "test", models)
+    manifest_test_count = next(int(part["recipient_targets"]) for part in manifest["splits"] if part["name"] == "test")
+    if manifest_test_count != REPLAY_TEST_TARGET_COUNT or len(test_labels) != REPLAY_TEST_TARGET_COUNT:
+        raise ValueError(
+            f"Test replay target count must be {REPLAY_TEST_TARGET_COUNT}; "
+            f"manifest={manifest_test_count}, replay={len(test_labels)}."
+        )
+
+    test_checks: dict[str, Any] = {}
+    for name in MODEL_KEYS:
+        model_record = manifest["models"][name]
+        reproduced_test = evaluate_scores(
+            test_labels,
+            _score_bundle(models[name], name, test_scores[name]),
+            float(model_record["threshold"]),
+        )
+        comparison = _metric_comparison(model_record["test_metrics"], reproduced_test)
+        confusion_total = sum(
+            int(reproduced_test[key])
+            for key in ("true_positives", "true_negatives", "false_positives", "false_negatives")
+        )
+        comparison["confusion_total"] = confusion_total
+        comparison["confusion_total_matches_test_targets"] = confusion_total == REPLAY_TEST_TARGET_COUNT
+        comparison["matches"] = comparison["matches"] and comparison["confusion_total_matches_test_targets"]
+        test_checks[name] = comparison
+
+    report["test"] = {"target_count": len(test_labels), "metrics": test_checks}
+    report["test_evaluation_performed"] = True
+    report["passed"] = all(comparison["matches"] for comparison in test_checks.values())
+    report["replay"]["test_label_stream_opened_after_validation_checks"] = True
+    return report
 
 
 def _manifest_model(

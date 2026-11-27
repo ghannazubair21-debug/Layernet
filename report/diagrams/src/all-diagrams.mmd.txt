@@ -1,0 +1,393 @@
+%%%FILE fig1_1_process
+flowchart TB
+  P["Plan increment<br/>(objective, scope)"] --> R["Specify<br/>requirements"]
+  R --> D["Design<br/>(UI, data, interfaces)"]
+  D --> I["Implement<br/>(code + unit tests)"]
+  I --> V["Verify<br/>(tests, QA sweep)"]
+  V --> E["Review and record<br/>(commit, manifests)"]
+  E -->|"next increment"| P
+%%%FILE fig2_1_taxonomy
+flowchart LR
+  ROOT["Transaction fraud detection approaches"]
+  ROOT --> RB["Rule-based / expert systems"]
+  ROOT --> SUP["Supervised learning"]
+  ROOT --> UNS["Unsupervised / anomaly detection"]
+  ROOT --> SEQ["Sequence / temporal models"]
+  ROOT --> HYB["Hybrid and ensemble systems"]
+  RB --> RB1["Thresholds and scorecards<br/>(LayerNet live baseline)"]
+  SUP --> S1["Logistic regression / SGD"]
+  SUP --> S2["Random Forest"]
+  SUP --> S3["Gradient boosting (XGBoost)"]
+  UNS --> U1["Isolation Forest"]
+  SEQ --> Q1["Aggregated history features"]
+  SEQ --> Q2["Recurrent / Transformer encoders"]
+  HYB --> H1["Rules + model scores,<br/>weighted ensembles"]
+%%%FILE fig2_2_asof
+flowchart TB
+  subgraph PAST["History(R, t): same recipient R, step < t"]
+    direction LR
+    A["step t-k<br/>bucket"] --> B["..."] --> C["step t-1<br/>bucket"]
+  end
+  PAST --> T["Target transaction<br/>recipient R, step t, label isFraud"]
+  S["Same-step transactions<br/>(simultaneous)"] -. excluded .-> T
+  F["Later-step transactions<br/>(future)"] -. excluded .-> T
+  T --> M["Model input: current token +<br/>up to 17 prior step buckets"]
+%%%FILE fig3_1_usecase
+flowchart LR
+  AN(("Analyst<br/>(primary actor)"))
+  subgraph SYS["LayerNet system"]
+    direction TB
+    UC1(["UC-01 Analyse transaction"])
+    UC2(["UC-02 View dashboard"])
+    UC3(["UC-03 Review history and details"])
+    UC4(["UC-04 View analytics"])
+    UC5(["UC-05 Run ULB benchmark replay"])
+    UC6(["UC-06 Manage settings and theme"])
+    UC7(["UC-07 Ask investigation assistant"])
+    UC8(["UC-08 Check system health"])
+    UCV(["Validate input"])
+    UCS(["Save record to browser storage"])
+  end
+  GEM(("Google Gemini API<br/>(secondary actor)"))
+  PY(("Python ML runtime<br/>(secondary actor)"))
+  AN --- UC1
+  AN --- UC2
+  AN --- UC3
+  AN --- UC4
+  AN --- UC5
+  AN --- UC6
+  AN --- UC7
+  AN --- UC8
+  UC1 -. include .-> UCV
+  UC1 -. include .-> UCS
+  UC7 --- GEM
+  UC5 --- PY
+%%%FILE fig4_1_context
+flowchart LR
+  AN["Analyst<br/>(web browser)"]
+  LN["LayerNet<br/>Next.js web application"]
+  LS[("Browser localStorage<br/>layernet-transactions<br/>layernet-settings")]
+  GEM["Google Gemini API<br/>gemini-2.5-flash"]
+  PY["Local Python runtime<br/>layernet_ml + saved artifacts"]
+  CSV["ULB-format CSV file<br/>(user supplied)"]
+  AN -->|"transaction details,<br/>filters, settings"| LN
+  LN -->|"priority score, factors,<br/>charts, records"| AN
+  LN <-->|"read / write JSON"| LS
+  LN -->|"chat messages (HTTPS)"| GEM
+  GEM -->|"streamed text"| LN
+  CSV -->|"upload"| LN
+  LN -->|"CSV on stdin"| PY
+  PY -->|"JSON scores, metrics"| LN
+%%%FILE fig4_2_layers
+flowchart TB
+  subgraph PL["Presentation"]
+    direction LR
+    P1["Pages: Dashboard, Analysis, History,<br/>Analytics, Benchmark, Health, Settings"]
+    P2["Shared components: AppShell,<br/>TransactionTable, charts, ScoreIndicator, AIChat"]
+  end
+  subgraph AL["Application logic"]
+    direction LR
+    A1["TransactionService"]
+    A2["fraudAnalysis<br/>(rules baseline v1)"]
+    A3["featureEngineering,<br/>behavioralBaseline"]
+    A4["transactionMetrics,<br/>benchmark client"]
+  end
+  subgraph DL["Storage and API"]
+    direction LR
+    D1["LocalStorageTransactionRepository<br/>(browser)"]
+    D2["/api/chat route<br/>(Node.js server)"]
+    D3["/api/benchmark route<br/>(Node.js server)"]
+  end
+  subgraph EX["External"]
+    direction LR
+    E1["Google Gemini API"]
+    E2["Python layernet_ml<br/>benchmark_replay"]
+  end
+  PL --> AL
+  AL --> DL
+  D2 --> E1
+  D3 --> E2
+%%%FILE fig4_3_research
+flowchart LR
+  subgraph TA["Track A: ULB (offline)"]
+    direction TB
+    a1["creditcard.csv<br/>284,807 rows"] --> a2["Remove exact duplicates<br/>283,726 rows, 473 fraud"]
+    a2 --> a3["Chronological 60/20/20 split<br/>by elapsed Time"]
+    a3 --> a4["Fit XGBoost, Random Forest,<br/>Isolation Forest, weighted ensemble"]
+    a4 --> a5["Validation: early stopping,<br/>candidate and threshold selection"]
+    a5 --> a6["Held-out test metrics<br/>(manifests)"]
+    a6 --> a7["Saved XGBoost and RF artifacts<br/>used by Benchmark replay page"]
+  end
+  subgraph TB2["Track B: PaySim (offline)"]
+    direction TB
+    b1["PaySim v2 archive<br/>6,362,620 rows"] --> b2["C-prefixed recipient targets;<br/>whole-step split 1-281 / 282-355 / 356-743"]
+    b2 --> b3["As-of history:<br/>strictly earlier steps, cap 17"]
+    b3 --> b4["Phase 12: current-only, temporal linear,<br/>one-layer Transformer"]
+    b3 --> b5["Phase 16 ablation: SGD current-only vs<br/>current + history; seeds 42 / 123 / 2026"]
+    b4 --> b6["Validation-F1 thresholds frozen;<br/>test replay and row-keyed export"]
+    b5 --> b6
+  end
+  TA ~~~ TB2
+%%%FILE fig4_10_class
+%%{init: {"themeVariables": {"fontSize": "16px"}}}%%
+classDiagram
+  direction LR
+  class TransactionRecord {
+    +transactionId: string
+    +timestamp: string
+    +amount: number
+    +type: string
+    +channel?: string
+    +accountId?, deviceId?, location?
+  }
+  class Transaction {
+    +riskScore: number
+    +risk: RiskLevel
+    +status: TransactionStatus
+  }
+  class AnalysisResult {
+    +riskScore: number
+    +risk: RiskLevel
+    +decision: Decision
+    +factors: string[]
+    +method: string
+    +limitations: string[]
+  }
+  class TransactionFeatures {
+    +amountLog1p: number
+    +hourUtc: number
+    +transactionsLast24Hours
+    +locationChanged
+  }
+  class BehavioralBaseline {
+    +historicalTransactionCount
+    +averageAmount
+    +mostCommonChannel
+  }
+  class TransactionRepository {
+    <<interface>>
+    +list() Transaction[]
+    +save(t) void
+    +clear() void
+  }
+  class LocalStorageRepository {
+    -key: layernet-transactions
+  }
+  class TransactionService {
+    -repository
+    +list()
+    +save(t)
+    +analyze(record) AnalysisResult
+  }
+  class fraudAnalysis {
+    <<module>>
+    +analyzeTransaction(tx)
+  }
+  class featureEngineering {
+    <<module>>
+    +engineerTransactionFeatures()
+    +createBehavioralBaseline()
+  }
+  TransactionRecord <|-- Transaction
+  TransactionRepository <|.. LocalStorageRepository
+  TransactionService o-- TransactionRepository
+  TransactionService ..> fraudAnalysis : uses
+  TransactionService ..> featureEngineering : uses
+  TransactionService ..> AnalysisResult : creates
+  AnalysisResult *-- TransactionFeatures
+  AnalysisResult *-- BehavioralBaseline
+  TransactionRepository ..> Transaction : stores
+%%%FILE fig4_11_activity
+flowchart TB
+  S(("Start")) --> A["Enter transaction details<br/>and press Analyze"]
+  A --> C{"Required fields<br/>valid?"}
+  C -->|No| D["Show field errors<br/>(aria-invalid)"]
+  D --> A
+  C -->|Yes| E["Load prior records; compute features<br/>and baseline (display only)"]
+  E --> H["Apply rules baseline v1:<br/>score, risk, decision, factors"]
+  H --> I{"Saved to<br/>localStorage?"}
+  I -->|No| J["Show submit error"]
+  I -->|Yes| K["Show result dossier and<br/>saved-to-History message"]
+  K --> L(("End"))
+  J --> L
+%%%FILE fig4_12_state
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Editing : analyst types
+  Editing --> Invalid : submit with errors
+  Invalid --> Editing : correct fields
+  Editing --> Analysing : submit valid (loading = true)
+  Analysing --> Saved : analyze() and save() resolve
+  Analysing --> Failed : exception (submitError set)
+  Saved --> Displayed : result and saveMessage set
+  Failed --> Editing : retry
+  Displayed --> Idle : Reset
+  Displayed --> Editing : edit and resubmit
+%%%FILE fig4_13_seq_analyse
+sequenceDiagram
+  autonumber
+  actor A as Analyst
+  participant P as AnalysisPage
+  participant S as TxService
+  participant R as Repository
+  participant F as Features
+  participant X as RulesV1
+  A->>P: submit form
+  P->>P: validate()
+  alt invalid
+    P-->>A: field errors
+  else valid
+    P->>S: analyze(record)
+    S->>R: list()
+    R-->>S: prior records
+    S->>F: engineer features
+    F-->>S: features, baseline
+    S->>X: analyzeTransaction()
+    X-->>S: score, factors
+    S-->>P: AnalysisResult
+    P->>S: save(tx)
+    S->>R: save(tx)
+    R-->>S: stored
+    P-->>A: result + saved message
+  end
+%%%FILE fig4_14_seq_benchmark
+sequenceDiagram
+  autonumber
+  actor A as Analyst
+  participant B as BenchmarkPage
+  participant API as /api/benchmark
+  participant PY as benchmark_replay
+  participant M as Artifacts
+  A->>B: choose CSV
+  B->>B: size check (2 MB)
+  B->>API: POST csv
+  API->>PY: spawn, CSV on stdin
+  PY->>PY: validate (5,000 rows)
+  PY->>M: verify SHA-256, load
+  M-->>PY: models, thresholds
+  PY-->>API: JSON results
+  alt error or 120 s timeout
+    API-->>B: failure kind
+  else success
+    API-->>B: BenchmarkSuccess
+    B-->>A: metrics, row table
+  end
+%%%FILE fig4_15_component
+flowchart LR
+  subgraph WEB["Next.js application"]
+    direction TB
+    UI["«component»<br/>UI pages (app/*)"]
+    CMP["«component»<br/>Shared UI (components/*)"]
+    LIB["«component»<br/>Domain logic (lib/*)"]
+    CHAT["«component»<br/>Chat API route"]
+    BEN["«component»<br/>Benchmark API route"]
+  end
+  subgraph MLP["Python: layernet_ml"]
+    direction TB
+    REP["«component»<br/>benchmark_replay"]
+    TRN["«component»<br/>training + evaluation<br/>(offline)"]
+  end
+  ART[("«artifact»<br/>ml/artifacts/*")]
+  GEM["«external»<br/>Gemini API"]
+  UI --> CMP
+  UI --> LIB
+  CMP -->|useChat| CHAT
+  UI -->|fetch| BEN
+  CHAT -->|AI SDK| GEM
+  BEN -->|spawn| REP
+  REP -->|reads| ART
+  TRN -->|writes| ART
+%%%FILE fig4_16_deployment
+flowchart TB
+  subgraph PC["«device» Local PC"]
+    direction TB
+    subgraph BR["«exec env» Web browser"]
+      UIx["LayerNet client bundle"]
+      LSx[("localStorage")]
+    end
+    subgraph NODE["«exec env» Node.js"]
+      SRV["Next.js server<br/>pages + API routes"]
+    end
+    subgraph PYENV["«exec env» Python venv"]
+      PYx["layernet_ml"]
+      ARx[("model artifacts")]
+    end
+  end
+  CLOUD["«external node» Google Gemini API<br/>(Internet)"]
+  UIx <-->|"HTTP localhost:3000"| SRV
+  UIx --- LSx
+  SRV -->|"spawn, stdin/stdout"| PYx
+  PYx --- ARx
+  SRV -->|HTTPS| CLOUD
+%%%FILE fig4_17_erd
+erDiagram
+  TRANSACTION_RECORD ||--|| ANALYSIS_SNAPSHOT : embeds
+  ACCOUNT |o--o{ TRANSACTION_RECORD : "optional accountId"
+  DEVICE |o--o{ TRANSACTION_RECORD : "optional deviceId"
+  BROWSER_PROFILE ||--|| SETTINGS : holds
+  BROWSER_PROFILE ||--o{ TRANSACTION_RECORD : holds
+  TRANSACTION_RECORD {
+    string transactionId PK
+    string accountId FK "optional"
+    string timestamp
+    number amount
+    string type
+    string location "optional"
+    string channel "optional"
+    string deviceId FK "optional"
+  }
+  ANALYSIS_SNAPSHOT {
+    number riskScore "0-100 uncalibrated"
+    string risk "Low, Medium, High"
+    string status "Cleared, Flagged, Reviewed"
+  }
+  ACCOUNT {
+    string accountId PK "identifier only"
+  }
+  DEVICE {
+    string deviceId PK "identifier only"
+  }
+  SETTINGS {
+    string key PK "layernet-settings"
+    string theme "system, light, dark"
+  }
+  BROWSER_PROFILE {
+    string origin PK "one per site origin"
+  }
+%%%FILE fig4_18_scoring
+flowchart TB
+  subgraph R1[" "]
+    direction LR
+    A(["Validated<br/>transaction"]) --> B["Amount points<br/>min(50, floor(10·log10 amount))"] --> C["Type points<br/>Refund +10<br/>Withdrawal +15"]
+  end
+  subgraph R2[" "]
+    direction LR
+    D["Channel points<br/>Mobile +5, Web +8<br/>POS −5"] --> E["Time points<br/>UTC 00–05 h: +12"] --> F["Sum, clamp<br/>to 0–100"]
+  end
+  subgraph R3[" "]
+    direction LR
+    G["Risk<br/>High ≥ 80<br/>Medium ≥ 40"] --> H["Decision<br/>Block ≥ 85<br/>Review ≥ 60"] --> I(["Result dossier<br/>with factors"])
+  end
+  R1 --> R2 --> R3
+%%%FILE fig4_19_seq_chat
+sequenceDiagram
+  actor Analyst
+  participant Panel as AIChat panel
+  participant Route as /api/chat
+  participant Gemini as Gemini API
+  Analyst->>Panel: type question, send
+  Panel->>Route: POST messages (useChat transport)
+  alt API key not configured
+    Route-->>Panel: 503 "Gemini API key is not configured."
+    Panel-->>Analyst: error message
+  else key configured
+    Route->>Gemini: streamText(system prompt, messages)
+    loop streamed parts
+      Gemini-->>Route: text chunk
+      Route-->>Panel: UI message stream
+      Panel-->>Analyst: incremental answer
+    end
+  end
+  opt stop or regenerate
+    Analyst->>Panel: Stop / Retry
+  end

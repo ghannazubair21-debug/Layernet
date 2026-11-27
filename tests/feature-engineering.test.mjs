@@ -16,6 +16,9 @@ function transaction(overrides = {}) {
     accountId: "account-a",
     timestamp: "2026-09-01T10:00:00.000Z",
     amount: 100,
+    // New Analysis-form records always carry a currency (default PKR). Legacy records without one are
+    // covered by the dedicated currency test below.
+    currency: "PKR",
     type: "Purchase",
     location: "Lahore",
     channel: "Web",
@@ -73,6 +76,27 @@ test("produces deterministic UTC calendar features and cyclical hour values", ()
   assert.equal(features.schemaVersion, "layernet.transaction-features.v1");
 });
 
+test("can reuse a precomputed behavioral baseline when engineering service output", () => {
+  const baseline = {
+    accountId: "account-a",
+    asOf: "2026-09-01T10:00:00.000Z",
+    historicalTransactionCount: 7,
+    firstObservedAt: null,
+    lastObservedAt: null,
+    averageAmount: 80,
+    amountStandardDeviation: 10,
+    mostCommonLocation: null,
+    mostCommonChannel: null,
+    mostCommonDeviceId: null,
+  };
+
+  const features = engineerTransactionFeatures(transaction(), [], baseline);
+
+  assert.equal(features.userBehavior.historicalTransactionCount, 7);
+  assert.equal(features.userBehavior.averageAmount, 80);
+  assert.equal(features.userBehavior.amountZScore, 2);
+});
+
 test("uses only a strictly earlier upstream velocity snapshot", () => {
   const good = engineerTransactionFeatures(transaction({
     velocity: { asOf: "2026-09-01T09:59:00.000Z", transactionsLastHour: 8, transactionsLast24Hours: 21, amountLast24Hours: 450 },
@@ -102,9 +126,27 @@ test("ignores invalid values in an otherwise valid upstream velocity snapshot", 
   assert.equal(features.amountLast24Hours, 0);
 });
 
+test("never mixes currencies or assumes one for legacy records in amount aggregates", () => {
+  const history = [
+    transaction({ transactionId: "tx-pkr", timestamp: "2026-09-01T09:00:00.000Z", amount: 300 }),
+    transaction({ transactionId: "tx-usd", timestamp: "2026-09-01T09:10:00.000Z", amount: 7, currency: "USD" }),
+    transaction({ transactionId: "tx-legacy", timestamp: "2026-09-01T09:20:00.000Z", amount: 999, currency: undefined }),
+  ];
+  const features = engineerTransactionFeatures(transaction(), history);
+  assert.equal(features.transactionsLast24Hours, 3);
+  assert.equal(features.amountLast24Hours, 300);
+  assert.equal(features.userBehavior.averageAmount, 300);
+
+  const legacyCurrent = engineerTransactionFeatures(transaction({ currency: undefined }), history);
+  assert.equal(legacyCurrent.transactionsLast24Hours, 3);
+  assert.equal(legacyCurrent.amountLast24Hours, null);
+  assert.equal(legacyCurrent.userBehavior.averageAmount, null);
+});
+
 test("rejects invalid timestamps and non-finite or negative amounts", () => {
   assert.throws(() => engineerTransactionFeatures(transaction({ timestamp: "invalid" }), []), /timestamp/);
   assert.throws(() => engineerTransactionFeatures(transaction({ amount: Number.NaN }), []), /amount/);
+  assert.throws(() => engineerTransactionFeatures(transaction({ amount: Number.POSITIVE_INFINITY }), []), /amount/);
   assert.throws(() => engineerTransactionFeatures(transaction({ amount: -1 }), []), /amount/);
 });
 
@@ -147,6 +189,39 @@ test("repository migrates legacy records and upserts by transaction ID", async (
     assert.equal(stored.length, 1);
     assert.equal(stored[0].amount, 30);
     assert.equal(stored[0].transactionId, "legacy-1");
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test("repository refuses to overwrite unreadable or unsupported saved history", async () => {
+  const values = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+    dispatchEvent: () => true,
+  };
+  try {
+    const repository = new LocalStorageTransactionRepository();
+    const incoming = {
+      ...transaction({ transactionId: "tx-new" }),
+      riskScore: 10,
+      risk: "Low",
+      status: "Cleared",
+    };
+
+    for (const raw of [
+      "{not-json",
+      JSON.stringify([{ ...incoming, transactionId: "tx-kept" }, { unsupported: true }]),
+    ]) {
+      values.set("layernet-transactions", raw);
+      await assert.rejects(repository.list(), /unreadable|unsupported/i);
+      await assert.rejects(repository.save(incoming), /unreadable|unsupported/i);
+      assert.equal(values.get("layernet-transactions"), raw);
+    }
   } finally {
     delete globalThis.window;
   }

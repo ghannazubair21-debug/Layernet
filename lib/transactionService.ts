@@ -22,8 +22,10 @@ export class TransactionService {
 
   async analyze(transaction: TransactionRecord): Promise<AnalysisResult> {
     const history = await this.repository.list();
-    const features = engineerTransactionFeatures(transaction, history);
     const behavioralBaseline = createBehavioralBaseline(transaction, history);
+    // Reuse the same baseline for feature output instead of recalculating its
+    // account history and statistics a second time.
+    const features = engineerTransactionFeatures(transaction, history, behavioralBaseline);
     const fallback = analyzeTransaction(transaction);
 
     return { ...fallback, features, behavioralBaseline };

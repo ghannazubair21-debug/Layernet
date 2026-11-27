@@ -12,6 +12,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? "dot" : "list",
+  // The dev server compiles routes on first visit; under parallel workers that can exceed the 5 s default.
+  expect: { timeout: 15_000 },
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000",
     trace: "on-first-retry",

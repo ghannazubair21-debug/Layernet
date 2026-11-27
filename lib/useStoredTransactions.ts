@@ -9,14 +9,24 @@ import type { Transaction } from "./types";
 export function useStoredTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const syncTransactions = async () => {
-      const stored = await transactionService.list();
-      if (active) {
-        setTransactions(stored.sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp)));
-        setIsLoading(false);
+      try {
+        const stored = await transactionService.list();
+        if (active) {
+          setTransactions(stored.sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp)));
+          setLoadError(null);
+          setIsLoading(false);
+        }
+      } catch {
+        if (active) {
+          setTransactions([]);
+          setLoadError("Saved transaction history could not be read. Existing local data was left unchanged.");
+          setIsLoading(false);
+        }
       }
     };
 
@@ -30,5 +40,5 @@ export function useStoredTransactions() {
     };
   }, []);
 
-  return { transactions, isLoading };
+  return { transactions, isLoading, loadError };
 }

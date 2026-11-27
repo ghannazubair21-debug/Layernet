@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Editing : analyst types
+  Editing --> Invalid : submit with errors
+  Invalid --> Editing : correct fields
+  Editing --> Analysing : submit valid (loading = true)
+  Analysing --> Saved : analyze() and save() resolve
+  Analysing --> Failed : exception (submitError set)
+  Saved --> Displayed : result and saveMessage set
+  Failed --> Editing : retry
+  Displayed --> Idle : Reset
+  Displayed --> Editing : edit and resubmit

@@ -34,3 +34,5 @@ export function cn(...classes: ClassValue[]): string {
   classes.forEach(normalize);
   return res.join(" ");
 }
+
+// Amount formatting lives in lib/currency.ts (formatAmount) so every amount is shown in its recorded currency.

@@ -1,78 +1,200 @@
 @import "tailwindcss";
 
-/* Approved LayerNet palette
-
-LIGHT:
-- #D9BCAF (warm page background)
-- #8A9688 (secondary/muted tone)
-- #283D3B (strong headings / important text)
-- #795663 (main branded accent)
-- #011627 (deepest text/accent)
-
-DARK:
-- #011627 (page background)
-- #283D3B (cards/surfaces)
-- #D9BCAF (high-contrast branded accent)
-- #795663 (secondary accent/border)
-- #8A9688 (muted/secondary text)
-*/
+/* ============================================================
+   LayerNet UI V2 — ROSE QUARTZ design system
+   Premium Editorial Fintech × Modern Financial Intelligence
+   Approved palette — do not alter token values.
+   ============================================================ */
 
 :root,
 html[data-theme="light"] {
   color-scheme: light;
-  /* Light theme (exact approved values) */
-  --page-bg: #D9BCAF; /* warm light background */
-  --surface: #FFFFFF; /* white cards/surfaces for readability */
-  --surface-strong: #FFFFFF; /* keep surfaces white for clarity */
-  --primary: #795663; /* main branded accent */
-  --primary-hover: #283D3B; /* darker accent for interactions */
-  --text: #283D3B; /* strong headings and important text */
-  --muted-text: #8A9688; /* secondary/muted tone */
-  --border: #D9BCAF; /* soft warm border */
-  /* Status colors (harmonize, remain secondary to palette) */
-  --success: #0f9f6e;
-  --warning: #d97706;
-  --danger: #dc2626;
+
+  /* Rose Quartz — light */
+  --page-bg: #FBF7F9;
+  --surface: #FFFFFF;
+  --surface-strong: #F5EAF0;
+  --primary: #A94F77;
+  --primary-hover: #913F65;
+  --primary-foreground: #FFFFFF;
+  --rose-soft: #D99AB5;
+  --rose-tint: #F8EAF0;
+  --rose-gold: #B58A72;
+  --border: #EADDE4;
+  --text: #2B2028;
+  --muted-text: #6E5B66;
+
+  /* Navigation chassis (plum) */
+  --sidebar: #281B27;
+  --sidebar-hover: #3B2938;
+  --sidebar-text: #D9C6D2;
+  --sidebar-text-strong: #F7EFF4;
+  --sidebar-active: #D99AB5;
+
+  /* Semantic risk — independent of brand */
+  --success: #27845A;
+  --warning: #A66B16;
+  --danger: #C43D52;
+  --info: #426DB5;
+  --success-tint: rgba(39, 132, 90, 0.10);
+  --warning-tint: rgba(166, 107, 22, 0.10);
+  --danger-tint: rgba(196, 61, 82, 0.10);
+  --info-tint: rgba(66, 109, 181, 0.10);
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(40, 27, 39, 0.05);
+  --shadow-2: 0 8px 24px rgba(40, 27, 39, 0.14);
+
+  /* shadcn/base-ui token bridge */
+  --background: var(--page-bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --secondary: var(--surface-strong);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-strong);
+  --muted-foreground: var(--muted-text);
+  --accent: var(--rose-tint);
+  --accent-foreground: var(--primary);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--primary);
+  --radius: 0.625rem;
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  /* Dark theme (exact approved values) */
-  --page-bg: #011627; /* primary page background */
-  --surface: #283D3B; /* dark charcoal cards/surfaces */
-  --surface-strong: #283D3B;
-  --primary: #D9BCAF; /* high-contrast branded accent */
-  --primary-hover: #795663; /* secondary accent/border */
-  --text: #D9BCAF; /* headings and readable text */
-  --muted-text: #8A9688; /* muted/secondary text */
-  --border: #795663; /* subtle dark accent for borders */
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #f87171;
+
+  /* Rose Quartz — dark */
+  --page-bg: #151017;
+  --surface: #211923;
+  --surface-strong: #2B202B;
+  --primary: #D98BAE;
+  --primary-hover: #E6A6C1;
+  --primary-foreground: #2B2028;
+  --rose-soft: #A66D89;
+  --rose-tint: #392735;
+  --rose-gold: #D1A58B;
+  --border: #3A2D39;
+  --text: #F7EFF4;
+  --muted-text: #C3AEBB;
+
+  --sidebar: #100B11;
+  --sidebar-hover: #302230;
+  --sidebar-text: #C3AEBB;
+  --sidebar-text-strong: #F7EFF4;
+  --sidebar-active: #D98BAE;
+
+  --success: #55C98A;
+  --warning: #F0BB55;
+  --danger: #F17D8D;
+  --info: #83A9ED;
+  --success-tint: rgba(85, 201, 138, 0.12);
+  --warning-tint: rgba(240, 187, 85, 0.12);
+  --danger-tint: rgba(241, 125, 141, 0.12);
+  --info-tint: rgba(131, 169, 237, 0.12);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  --background: var(--page-bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --secondary: var(--surface-strong);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-strong);
+  --muted-foreground: var(--muted-text);
+  --accent: var(--rose-tint);
+  --accent-foreground: var(--primary);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--primary);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
     color-scheme: dark;
-    --page-bg: #011627;
-    --surface: #283D3B;
-    --surface-strong: #283D3B;
-    --primary: #D9BCAF;
-    --primary-hover: #795663;
-    --text: #D9BCAF;
-    --muted-text: #8A9688;
-    --border: #795663;
-    --success: #34d399;
-    --warning: #fbbf24;
-    --danger: #f87171;
+    --page-bg: #151017;
+    --surface: #211923;
+    --surface-strong: #2B202B;
+    --primary: #D98BAE;
+    --primary-hover: #E6A6C1;
+    --primary-foreground: #2B2028;
+    --rose-soft: #A66D89;
+    --rose-tint: #392735;
+    --rose-gold: #D1A58B;
+    --border: #3A2D39;
+    --text: #F7EFF4;
+    --muted-text: #C3AEBB;
+    --sidebar: #100B11;
+    --sidebar-hover: #302230;
+    --sidebar-text: #C3AEBB;
+    --sidebar-text-strong: #F7EFF4;
+    --sidebar-active: #D98BAE;
+    --success: #55C98A;
+    --warning: #F0BB55;
+    --danger: #F17D8D;
+    --info: #83A9ED;
+    --success-tint: rgba(85, 201, 138, 0.12);
+    --warning-tint: rgba(240, 187, 85, 0.12);
+    --danger-tint: rgba(241, 125, 141, 0.12);
+    --info-tint: rgba(131, 169, 237, 0.12);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --background: var(--page-bg);
+    --foreground: var(--text);
+    --card: var(--surface);
+    --card-foreground: var(--text);
+    --popover: var(--surface);
+    --popover-foreground: var(--text);
+    --secondary: var(--surface-strong);
+    --secondary-foreground: var(--text);
+    --muted: var(--surface-strong);
+    --muted-foreground: var(--muted-text);
+    --accent: var(--rose-tint);
+    --accent-foreground: var(--primary);
+    --destructive: var(--danger);
+    --input: var(--border);
+    --ring: var(--primary);
   }
 }
 
 @theme inline {
   --color-background: var(--page-bg);
   --color-foreground: var(--text);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: "SFMono-Regular", "Consolas", monospace;
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--surface-strong);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-strong);
+  --color-muted-foreground: var(--muted-text);
+  --color-accent: var(--rose-tint);
+  --color-accent-foreground: var(--primary);
+  --color-destructive: var(--danger);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --color-rose-soft: var(--rose-soft);
+  --color-rose-tint: var(--rose-tint);
+  --color-rose-gold: var(--rose-gold);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "Consolas", monospace;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 html {
@@ -83,9 +205,47 @@ body {
   min-height: 100vh;
   background: var(--page-bg);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
   transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
 }
+
+::selection {
+  background: var(--rose-tint);
+  color: var(--text);
+}
+
+/* Financial data voice */
+.ln-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.ln-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* Focus visibility — everywhere */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbars — quiet */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ============================================================
+   Legacy alias layer — existing components restyle via tokens.
+   ============================================================ */
 
 .layernet-shell {
   background: var(--page-bg);
@@ -95,19 +255,20 @@ body {
 .layernet-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 1rem;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+  box-shadow: var(--shadow-1);
 }
 
 .layernet-card-strong {
   background: var(--surface-strong);
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 10px;
 }
 
 .layernet-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--muted-text);
 }
@@ -128,21 +289,29 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
+  gap: 0.5rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.layernet-button:hover {
+  background: var(--surface-strong);
+  border-color: var(--rose-soft);
 }
 
 .layernet-button--primary {
   border-color: transparent;
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-foreground);
 }
 
 .layernet-button--primary:hover {
   background: var(--primary-hover);
+  border-color: transparent;
 }
 
 .layernet-status {
@@ -158,78 +327,55 @@ body {
 
 .layernet-status--success {
   color: var(--success);
-  background: rgba(52, 211, 153, 0.08);
+  background: var(--success-tint);
+  border-color: transparent;
 }
 
 .layernet-status--warning {
   color: var(--warning);
-  background: rgba(251, 191, 36, 0.08);
+  background: var(--warning-tint);
+  border-color: transparent;
 }
 
 .layernet-status--danger {
   color: var(--danger);
-  background: rgba(248, 113, 113, 0.08);
+  background: var(--danger-tint);
+  border-color: transparent;
 }
 
 /* ============================================================
    SmartActionButton — motion & state micro-interactions
    ============================================================ */
 
-/* Spinner rotation for the loading state */
 @keyframes layernet-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* Single short shake for the error state */
 @keyframes layernet-shake {
-  10%,
-  90% {
-    transform: translateX(-2px);
-  }
-  20%,
-  80% {
-    transform: translateX(4px);
-  }
-  30%,
-  70% {
-    transform: translateX(-6px);
-  }
-  40%,
-  60% {
-    transform: translateX(6px);
-  }
-  50% {
-    transform: translateX(-4px);
-  }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+  50% { transform: translateX(-4px); }
 }
 
-/* Brief success pulse to confirm completion */
 @keyframes layernet-success-pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
 }
 
-/* SmartActionButton extends layernet-button--primary with
-   transform/opacity transitions for hover, focus, and state changes. */
 .layernet-smart-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .5rem;
-  border-radius: 0.75rem;
+  gap: 0.5rem;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: var(--primary);
-  color: #fff;
-  /* Include transform and opacity in the transition set */
+  color: var(--primary-foreground);
   transition: background-color 0.2s ease, border-color 0.2s ease,
     color 0.2s ease, transform 0.15s ease, opacity 0.3s ease;
   cursor: pointer;
@@ -238,6 +384,7 @@ body {
   min-height: 2.5rem;
   min-width: 14rem;
   padding: 0.625rem 1.25rem;
+  font-weight: 500;
 }
 
 .layernet-smart-button:hover {
@@ -256,44 +403,97 @@ body {
   transform: none;
 }
 
-/* Animation utility classes */
-.layernet-spin {
-  animation: layernet-spin 0.8s linear infinite;
+.layernet-spin { animation: layernet-spin 0.8s linear infinite; }
+.layernet-shake { animation: layernet-shake 0.5s ease-in-out; }
+.layernet-success-pulse { animation: layernet-success-pulse 0.3s ease-in-out; }
+
+/* ============================================================
+   V2 motion — subtle, intentional
+   ============================================================ */
+
+@keyframes ln-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.layernet-shake {
-  animation: layernet-shake 0.5s ease-in-out;
+@keyframes ln-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.layernet-success-pulse {
-  animation: layernet-success-pulse 0.3s ease-in-out;
+@keyframes ln-drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
-/* Reduced motion support — keep all state feedback, remove transforms/animations */
+@keyframes ln-panel-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes ln-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.ln-enter {
+  animation: ln-rise 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.ln-enter-stagger > * {
+  animation: ln-rise 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.ln-enter-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.ln-enter-stagger > *:nth-child(2) { animation-delay: 35ms; }
+.ln-enter-stagger > *:nth-child(3) { animation-delay: 70ms; }
+.ln-enter-stagger > *:nth-child(4) { animation-delay: 105ms; }
+.ln-enter-stagger > *:nth-child(5) { animation-delay: 140ms; }
+.ln-enter-stagger > *:nth-child(6) { animation-delay: 175ms; }
+
+.ln-drawer { animation: ln-drawer-in 0.24s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.ln-slide-over { animation: ln-panel-in 0.24s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.ln-fade { animation: ln-fade 0.2s ease both; }
+
+.ln-skeleton {
+  background: linear-gradient(90deg, var(--surface-strong) 25%, var(--rose-tint) 50%, var(--surface-strong) 75%);
+  background-size: 200% 100%;
+  animation: ln-shimmer 1.6s linear infinite;
+  border-radius: 6px;
+}
+
+/* Chart draw-in */
+@keyframes ln-draw {
+  from { stroke-dashoffset: var(--ln-path-len, 1200); }
+  to { stroke-dashoffset: 0; }
+}
+.ln-chart-line {
+  stroke-dasharray: var(--ln-path-len, 1200);
+  animation: ln-draw 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes ln-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.ln-chart-area { animation: ln-fade 0.5s ease both; }
+
+/* Reduced motion — keep state feedback, remove motion */
 @media (prefers-reduced-motion: reduce) {
   .layernet-smart-button {
-    transition: background-color 0.05s ease, border-color 0.05s ease,
-      color 0.05s ease;
+    transition: background-color 0.05s ease, border-color 0.05s ease, color 0.05s ease;
   }
-
-  .layernet-smart-button:hover {
-    transform: none;
-  }
-
-  .layernet-spin {
+  .layernet-smart-button:hover { transform: none; }
+  .layernet-spin,
+  .layernet-shake,
+  .layernet-success-pulse,
+  .ln-enter,
+  .ln-enter-stagger > *,
+  .ln-drawer,
+  .ln-slide-over,
+  .ln-fade,
+  .ln-chart-line,
+  .ln-chart-area {
     animation: none;
   }
-
-  .layernet-shake {
-    animation: none;
-  }
-
-  .layernet-success-pulse {
-    animation: none;
-  }
+  .ln-skeleton { animation: none; }
+  * { transition-duration: 0.05s !important; }
 }
-
-
-
-
-

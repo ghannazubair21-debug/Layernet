@@ -19,6 +19,11 @@ export type TransactionRecord = {
   accountId?: string;
   timestamp: string;
   amount: number;
+  /**
+   * ISO 4217 code of `amount`, stored with it. Absent only on legacy records saved before currency was
+   * captured; the UI shows those as UNKNOWN and never assumes a currency. No FX conversion is performed.
+   */
+  currency?: string;
   type: string;
   location?: string;
   channel?: string;

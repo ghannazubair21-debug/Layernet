@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { describeFinishNote } from "@/lib/chatOutcome";
 
 const suggestedPrompts = [
   "Which evidence should an analyst verify before escalating?",
@@ -17,6 +18,27 @@ function getTextFromMessage(message: { parts?: Array<{ type?: string; text?: str
     .filter((part) => part.type === "text")
     .map((part) => part.text ?? "")
     .join("");
+}
+
+const GENERIC_ERROR_DETAIL =
+  "The assistant could not generate a response. You can retry this request or ask another question.";
+
+/**
+ * The chat route returns fixed, non-sensitive JSON messages such as `{"error":"Chat service is busy. Retry shortly."}`
+ * for 4xx/5xx responses, and encodes mid-stream provider failures (timeout, quota, outage) the same way.
+ * Show that message when present so the analyst knows whether retrying can help.
+ */
+export function describeChatError(error: Error | undefined): string {
+  if (!error?.message) return GENERIC_ERROR_DETAIL;
+  try {
+    const parsed: unknown = JSON.parse(error.message);
+    if (parsed && typeof parsed === "object" && "error" in parsed && typeof parsed.error === "string" && parsed.error.trim()) {
+      return parsed.error.trim().slice(0, 200);
+    }
+  } catch {
+    // Not a JSON route error (e.g. a network or stream failure); fall back to the generic text.
+  }
+  return GENERIC_ERROR_DETAIL;
 }
 
 export default function AIChat() {
@@ -95,7 +117,8 @@ export default function AIChat() {
           ref={scrollRef}
           onScroll={handleScroll}
           className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6"
-          aria-live="polite"
+          role="log"
+          aria-label="Conversation with the AI investigation assistant"
         >
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
@@ -123,8 +146,9 @@ export default function AIChat() {
             messages.map((message) => {
               const text = getTextFromMessage(message);
               const isUser = message.role === "user";
+              const finishNote = isUser ? null : describeFinishNote(message.metadata);
 
-              if (!text && !isUser) {
+              if (!text && !isUser && !finishNote) {
                 return null;
               }
 
@@ -132,12 +156,12 @@ export default function AIChat() {
                 <div
                   key={message.id}
                   className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                  role="listitem"
+                  data-chat-role={message.role}
                 >
                   <div
                     className={`max-w-[82%] rounded-2xl border px-4 py-3 shadow-sm ${
                       isUser
-                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                        ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
                         : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text)]"
                     }`}
                   >
@@ -145,8 +169,13 @@ export default function AIChat() {
                       <span>{isUser ? "Analyst" : "AI assistant"}</span>
                     </div>
                     <div className="whitespace-pre-wrap break-words text-sm leading-6">
-                      {text || (isUser ? "" : "Thinking...")}
+                      {text || (isUser || finishNote ? "" : "Thinking...")}
                     </div>
+                    {finishNote ? (
+                      <p className={`${text ? "mt-2 border-t border-[var(--border)] pt-2" : ""} text-xs leading-5 text-[var(--muted-text)]`}>
+                        {finishNote}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -166,11 +195,9 @@ export default function AIChat() {
 
           {error ? (
             <div className="flex justify-center">
-              <div className="max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4 text-sm text-[var(--text)]">
+              <div role="alert" className="max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4 text-sm text-[var(--text)]">
                 <p className="font-semibold text-[var(--danger)]">AI request failed</p>
-                <p className="mt-2 text-[var(--muted-text)]">
-                  The assistant could not generate a response. You can retry this request or ask another question.
-                </p>
+                <p className="mt-2 text-[var(--muted-text)]">{describeChatError(error)}</p>
                 <div className="mt-3 flex gap-2">
                   <button type="button" onClick={() => regenerate()} className="layernet-button layernet-button--primary px-3 py-2 text-sm">
                     Retry
@@ -198,12 +225,12 @@ export default function AIChat() {
               }}
               rows={3}
               placeholder={isGenerating ? "Generating response..." : "Ask a general investigation question..."}
-              disabled={isGenerating}
+              aria-describedby="ln-chat-hint"
               className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text)] placeholder:text-[var(--muted-text)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-70"
             />
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-xs text-[var(--muted-text)]">
+              <div id="ln-chat-hint" className="text-xs text-[var(--muted-text)]">
                 {isGenerating ? "The assistant is responding to this conversation." : "Replies use only conversation details, do not affect scores, and should be checked against source records."}
               </div>
 

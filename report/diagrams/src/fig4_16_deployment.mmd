@@ -1,0 +1,21 @@
+flowchart TB
+  subgraph PC["«device» Local PC"]
+    direction TB
+    subgraph BR["«exec env» Web browser"]
+      UIx["LayerNet client bundle"]
+      LSx[("localStorage")]
+    end
+    subgraph NODE["«exec env» Node.js"]
+      SRV["Next.js server<br/>pages + API routes"]
+    end
+    subgraph PYENV["«exec env» Python venv"]
+      PYx["layernet_ml"]
+      ARx[("model artifacts")]
+    end
+  end
+  CLOUD["«external node» Google Gemini API<br/>(Internet)"]
+  UIx <-->|"HTTP localhost:3000"| SRV
+  UIx --- LSx
+  SRV -->|"spawn, stdin/stdout"| PYx
+  PYx --- ARx
+  SRV -->|HTTPS| CLOUD

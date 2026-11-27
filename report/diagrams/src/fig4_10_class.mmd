@@ -1,0 +1,68 @@
+%%{init: {"themeVariables": {"fontSize": "16px"}}}%%
+classDiagram
+  direction LR
+  class TransactionRecord {
+    +transactionId: string
+    +timestamp: string
+    +amount: number
+    +type: string
+    +channel?: string
+    +accountId?, deviceId?, location?
+  }
+  class Transaction {
+    +riskScore: number
+    +risk: RiskLevel
+    +status: TransactionStatus
+  }
+  class AnalysisResult {
+    +riskScore: number
+    +risk: RiskLevel
+    +decision: Decision
+    +factors: string[]
+    +method: string
+    +limitations: string[]
+  }
+  class TransactionFeatures {
+    +amountLog1p: number
+    +hourUtc: number
+    +transactionsLast24Hours
+    +locationChanged
+  }
+  class BehavioralBaseline {
+    +historicalTransactionCount
+    +averageAmount
+    +mostCommonChannel
+  }
+  class TransactionRepository {
+    <<interface>>
+    +list() Transaction[]
+    +save(t) void
+    +clear() void
+  }
+  class LocalStorageRepository {
+    -key: layernet-transactions
+  }
+  class TransactionService {
+    -repository
+    +list()
+    +save(t)
+    +analyze(record) AnalysisResult
+  }
+  class fraudAnalysis {
+    <<module>>
+    +analyzeTransaction(tx)
+  }
+  class featureEngineering {
+    <<module>>
+    +engineerTransactionFeatures()
+    +createBehavioralBaseline()
+  }
+  TransactionRecord <|-- Transaction
+  TransactionRepository <|.. LocalStorageRepository
+  TransactionService o-- TransactionRepository
+  TransactionService ..> fraudAnalysis : uses
+  TransactionService ..> featureEngineering : uses
+  TransactionService ..> AnalysisResult : creates
+  AnalysisResult *-- TransactionFeatures
+  AnalysisResult *-- BehavioralBaseline
+  TransactionRepository ..> Transaction : stores

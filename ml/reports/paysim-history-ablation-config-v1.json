@@ -1,0 +1,138 @@
+{
+  "schema_version": "layernet-paysim-history-ablation-config.v1",
+  "experiment_id": "paysim-history-ablation-v1",
+  "research_question": "Under a fixed PaySim chronological split and matched SGD training procedure, does access to strictly earlier recipient-history tokens improve fraud-detection ranking compared with current-transaction-only input?",
+  "dataset": {
+    "archive_path": "ml/data/paysim/paysim-author-release-v2.zip",
+    "archive_sha256": "f7eef9ffad5cfa64a034143a5c9b30491d189420b273d5ad5723ca40b596613d",
+    "csv_member": "PS_20174392719_1491204439457_log.csv",
+    "source_rows": 6362620,
+    "sequence_contract_path": "ml/reports/paysim-sequence-contract-v1.json",
+    "sequence_contract_sha256": "acfd3223b58ee1b58b7c6a522e82dcd8b38e1d0e811c385d5ca60def0834ace7",
+    "sequence_contract_version": "layernet-paysim-c-recipient-causal-sequence.v1",
+    "dataset_schema_version": "layernet-paysim-release-v2.schema.v1",
+    "feature_schema_version": "layernet-paysim-causal-model-input.v1",
+    "entity": "C-prefixed nameDest recipient",
+    "time": "step",
+    "target": "current transaction isFraud; target and historical labels are not input features"
+  },
+  "split": {
+    "strategy": "fixed whole-step chronological split",
+    "boundaries": {
+      "train": [1, 281],
+      "validation": [282, 355],
+      "test": [356, 743]
+    },
+    "recipient_targets": {
+      "train": 2533440,
+      "validation": 860036,
+      "test": 817649
+    },
+    "history_rule": "history_step < target_step; tied-step and future events excluded",
+    "partition_history_rule": "training targets use only earlier train-step context; validation and test may use earlier context under the accepted causal contract"
+  },
+  "arms": {
+    "A_current_only": {
+      "input": "final current-target token only; exactly the current transaction type and amount channels used by Arm B"
+    },
+    "B_current_plus_history": {
+      "input": "the same current-target token plus the 17-slot history representation of strictly earlier whole step buckets"
+    },
+    "controlled_difference": "availability of prior-history tokens only; same SGDClassifier family, parameters, target rows, pairwise batch order, training budget, class-weight rule, validation threshold rule, and evaluator"
+  },
+  "model": {
+    "family": "sklearn.linear_model.SGDClassifier",
+    "loss": "log_loss",
+    "penalty": "l2",
+    "alpha": 0.0001,
+    "learning_rate": "optimal",
+    "average": true,
+    "epochs": 1,
+    "batch_size": 4096,
+    "partial_fit": true,
+    "shuffle": "same deterministic permutation within each streaming batch for the paired arms; classifier random_state equals the run seed",
+    "class_weight": {
+      "method": "negative_train_targets / positive_train_targets",
+      "train_negative_targets": 2530247,
+      "train_positive_targets": 3193,
+      "positive_class_weight": 792.4356404635139,
+      "fit_scope": "train labels only"
+    },
+    "early_stopping": "none; fixed one epoch"
+  },
+  "seeds": [42, 123, 2026],
+  "threshold_selection": {
+    "source": "validation only, independently for each seed and arm",
+    "metric": "F1",
+    "procedure": "maximize F1 over sklearn precision_recall_curve thresholds; ties prefer higher precision, then higher threshold",
+    "decision_rule": "positive iff score >= frozen threshold",
+    "test_use": "frozen validation threshold only; no test selection"
+  },
+  "outcomes": {
+    "primary_metric": "average_precision",
+    "primary_difference": "Arm B minus Arm A, paired by seed and evaluated on identical test rows",
+    "secondary_metrics": [
+      "pr_auc",
+      "roc_auc",
+      "precision_at_threshold",
+      "recall_at_threshold",
+      "f1_at_threshold",
+      "true_positives",
+      "true_negatives",
+      "false_positives",
+      "false_negatives"
+    ],
+    "score_semantics": "uncalibrated SGD decision margin; higher means more suspicious; not a probability"
+  },
+  "uncertainty": {
+    "unit_of_analysis": "seed-level paired metric difference; not transaction rows or independent datasets",
+    "summary": "mean and sample standard deviation across the three paired seed differences",
+    "interval": "two-sided 95% Student-t interval for the mean paired difference, df=2",
+    "interpretation": "descriptive training-seed variability conditional on one fixed test split; no significance claim"
+  },
+  "evaluation_order": [
+    "train both arms for all preregistered seeds",
+    "select and record validation thresholds for each seed/arm",
+    "verify all model and threshold artifacts and freeze them",
+    "only then stream the test partition once to score all six saved models",
+    "attach evaluation-only test labels after score generation for metrics and row-level exports"
+  ],
+  "row_identity": {
+    "key": "SHA-256 of UTF-8 archive_sha256 + NUL + csv_member + NUL + decimal zero-based source data-row ordinal",
+    "key_is_model_feature": false,
+    "export_rows_per_seed": 817649
+  },
+  "streaming": {
+    "reader_preflight": "label-blind archive preflight",
+    "csv_chunksize_rows": 50000,
+    "test_batch_size": 8192,
+    "sequence_cap": 17,
+    "persist_full_source_or_sequence_dataset": false
+  },
+  "expected_workload_estimate": {
+    "paired_training_target_exposures": 15200640,
+    "paired_validation_score_targets": 5160216,
+    "paired_test_score_targets": 4905894,
+    "source_row_visits_approx": 39528689,
+    "runtime": "CPU-bound streaming workload; no reliable wall-time estimate is available from prior manifests"
+  },
+  "storage_estimate": {
+    "prediction_exports": "approximately 0.1–0.3 GiB total for three compressed row-level exports; estimate only",
+    "models_and_metadata": "small compared with predictions; exact size measured after execution"
+  },
+  "failure_criteria": [
+    "archive or contract hash/schema/split mismatch",
+    "any causal-history, feature-exclusion, row-count, or label-separation violation",
+    "non-finite scores or threshold decisions inconsistent with the frozen rule",
+    "a seed/arm fails before the preregistered set is complete",
+    "artifact write would overwrite an existing experiment or accepted artifact",
+    "compute or storage failure"
+  ],
+  "limitations": [
+    "synthetic PaySim data only",
+    "recipient-side C-prefixed nameDest histories only",
+    "one fixed chronological test split reused across seeds",
+    "three seeds provide limited uncertainty information",
+    "seed variability does not capture dataset, temporal-window, or domain uncertainty"
+  ]
+}

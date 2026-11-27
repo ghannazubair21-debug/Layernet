@@ -30,3 +30,13 @@ The dashboard will eventually display fraud insights, risk scores, alerts, and d
 2. All settings form fields must have accessible labels and validation feedback. Required fields must show clear error messages, and invalid fields should use appropriate accessibility attributes such as `aria-invalid`.
 
 3. Settings data must use the `layernet-settings` localStorage key and must be validated before saving. Theme changes must support System, Light, and Dark options and must persist across page reloads.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

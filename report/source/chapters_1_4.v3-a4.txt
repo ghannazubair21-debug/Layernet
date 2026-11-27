@@ -1,0 +1,345 @@
+@CHAPTER 1|INTRODUCTION
+
+## 1.1 Introduction
+Digital payments have become part of ordinary life, and card payments, mobile wallets, online banking and point-of-sale terminals now move a very large number of small transactions every day. Each of these channels can be abused through stolen card details, account takeover, mule accounts or transfers that are later reversed, and such abuse appears in transaction data as records that look almost normal. Fraud analysts therefore face two related problems: finding the few suspicious records among very many legitimate ones, and explaining why a record deserves attention so that a human can act on it {bolton} {abdallah}. A useful tool must support both tasks and must be honest about the evidence behind every score it shows.
+
+LayerNet addresses this problem from two directions. The first is a working web application, the **LayerNet investigation dashboard**, built with Next.js, React and TypeScript {nextjs} {react}, in which an analyst enters a transaction, receives a transparent priority score from a rules-based baseline, sees every point that contributed to it and reviews saved records later. The second is an **offline machine-learning research track** in Python that evaluates tree-based models on the public ULB/Worldline credit-card dataset {dalpozzolo15} {ulbkaggle} and studies recipient history on the synthetic PaySim dataset {paysim}. The two parts are kept separate by design: the live score comes only from the rules baseline, and trained XGBoost and Random Forest models are exposed only through a clearly labeled Benchmark page.
+
+## 1.2 Motivation
+Three observations motivated the project. First, many student and tutorial fraud-detection projects report a single accuracy figure on a highly imbalanced dataset, although accuracy is dominated by the legitimate class when fraud is well below one percent of all transactions {saito} {davis}. Second, a model score alone is rarely enough for an investigator, who needs to see which inputs pushed a case upward, what the system cannot see and what a sensible next action is. Third, history matters in fraud: aggregating a customer's past transactions can improve detection {whitrow} {bahnsen} and sequence models can learn from transaction order {jurgovsky}, but history is also a common source of leakage that makes offline results look better than anything achievable in practice {kaufman}. The project was motivated by the wish to test the value of history carefully rather than assume it.
+
+## 1.3 Problem Statement
+Fraud analysts need a tool that helps them prioritize and document suspicious transactions, while students and researchers need evidence about which modelling choices actually help on imbalanced, time-ordered data. Existing open demonstrations usually show either a polished dashboard driven by an opaque score, or notebook results that are never connected to a usable interface and are often evaluated with random rather than chronological splits. The problem addressed by LayerNet therefore has two parts. The first is *to build an accessible, transparent fraud-investigation web prototype in which every displayed score can be traced to a stated method.* The second is *to support it with reproducible offline experiments that evaluate trained models and recipient-history features under chronological, leakage-aware protocols and report their results with uncertainty and limits.*
+
+## 1.4 Goals and Objectives
+The overall goal is to deliver a working and honest investigation prototype together with research evidence that can guide the later integration of trained models. This goal was divided into the seven objectives listed in Table 1.1, each of which can be checked against the repository. The status column uses the same terms throughout the report: implemented means that the feature exists and was tested, while partial means that the work was carried out but its result does not yet support a firm claim. The evidence behind each status is listed in the requirement traceability matrix in Appendix – I.
+
+!TABLE Objectives of the project and their status
+!WIDTHS 0.6,4.3,1.6
+| ID | Objective | Status |
+| O1 | Build a responsive web application for entering, scoring, saving and reviewing transactions | Implemented |
+| O2 | Provide a transparent rules-based priority score with listed contributions, decision and limitations | Implemented |
+| O3 | Summarize saved records through dashboard indicators, history search and analytics | Implemented |
+| O4 | Train and evaluate supervised and unsupervised models on ULB with a chronological split | Implemented (offline) |
+| O5 | Expose the trained ULB models for server-side benchmark replay, separate from live scoring | Implemented (benchmark only) |
+| O6 | Test whether recipient history adds signal on PaySim with a pre-registered, leakage-aware ablation | Partial |
+| O7 | Offer an optional assistant for general investigation questions, separate from scoring {gemini} | Implemented (needs API key) |
+
+## 1.5 Scope of the Study
+The scope was fixed by what could be built, verified and documented within the project period, and Table 1.2 states what lies inside and outside the current release. The project was proposed as *LayerNet 2.0 Multi-Layered Transformer-Based Fraud Detection, Analysis & Investigation Intelligence System*, with layers for transaction rules, behavioral features, a temporal Transformer, classical models, an ensemble and investigation support. All of these layers exist, but at different levels: the rules layer drives the live score, behavioral features are computed and displayed, the classical models and the ensemble were trained and evaluated offline, and the Transformer was evaluated offline on PaySim only. A combined live score, a mobile application and multi-user roles were planned but are not part of this release.
+
+!TABLE Scope of the current release
+!WIDTHS 3.2,3.3
+| In scope (implemented or evaluated) | Out of scope (future work) |
+| Single-user web prototype running locally with Next.js 16 | Multi-user accounts, authentication and roles |
+| Manual entry of transactions through a validated, accessible form | Live integration with a bank or payment switch |
+| Rules baseline v1 producing an uncalibrated 0–100 priority score | Calibrated fraud probabilities or automatic decisions |
+| Browser localStorage persistence of records and settings | Server-side database with an audit trail |
+| ULB benchmark replay with saved XGBoost and Random Forest models | Trained models inside the live Analysis page |
+| Offline ULB benchmark and PaySim temporal experiments | Validation on a second real dataset |
+| Optional Gemini chat for general questions | An assistant that reads records or changes scores |
+
+## 1.6 Process Model
+LayerNet was developed with an **iterative and incremental** process model {larman}. Each increment followed the cycle shown in Figure 1.1: plan the increment, specify its requirements, design, implement with tests, verify, and record the result. The version-control history contains 25 commits from 12 August to 23 November 2026, grouped into five increments: project set-up, migration to Next.js with persisted records, the assistant and structured interface, the offline research pipeline, and finally the benchmark replay with the interface redesign. The model suited the project because requirements changed as evidence arrived; for example, trained models were kept out of the live score only after the research showed that ULB models cannot score manually entered transactions, which lack the anonymized V1–V28 features.
+
+!FIG diagrams/out/fig1_1_process.png|1.55|Iterative and incremental process model followed in LayerNet
+
+## 1.7 Nature of the Project
+LayerNet is a **development project with a research component**. The development part is a complete web application with a defined user interface, application logic, persistence, two server routes and automated tests. The research part is a set of reproducible offline experiments whose configurations, data splits, thresholds and metrics are recorded in machine-readable manifests. The project is a research prototype rather than a production system: it makes no automatic decisions about real customers, and every score it shows is labeled with its method and meaning.
+
+## 1.8 Organization of the Report
+The rest of this report is organized as follows. Chapter 2 explains the main concepts of transaction fraud detection, reviews existing studies and datasets, and identifies the gap that LayerNet addresses. Chapter 3 specifies the interface, functional and non-functional requirements, the use cases, the resource and data requirements, and the feasibility of the project. Chapter 4 presents the system design, the design approach, the interface of the implemented application, the 4+1 architectural views with UML diagrams, and the logical data model. Appendix – I traces every requirement to its source code and verification, and the references follow the appendix.
+
+@CHAPTER 2|BACKGROUND AND EXISTING WORK
+
+## 2.1 Introduction
+This chapter provides the background needed to understand LayerNet. Section 2.2 defines the main constructs: financial transactions, fraud detection, transaction features and history, class imbalance and evaluation metrics, machine-learning approaches, temporal leakage and concept drift, and explainability and calibration. Section 2.3 reviews existing studies, systems and datasets. Section 2.4 compares the most relevant studies with LayerNet and states the research gap, and Section 2.5 summarizes the chapter.
+
+## 2.2 Important Constructs
+### 2.2.1 Financial Transactions
+A financial transaction records that an amount of money moved at a certain time, through a certain channel, between two parties. Typical fields are an identifier, a timestamp, an amount, a transaction type, the channel, a location and a device. In LayerNet the `TransactionRecord` type holds these fields, with transaction types Purchase, Refund and Withdrawal and channels Web, Mobile and POS; account, device and location identifiers are optional because many inputs do not provide them. Public research datasets differ from this form. The ULB dataset publishes only the elapsed time, the amount and 28 anonymized principal-component features V1–V28 {dalpozzolo15}, while PaySim publishes a simulated hourly step, a type, an amount and origin and destination identifiers {paysim}.
+
+### 2.2.2 Fraud Detection
+Fraud detection is the task of identifying transactions that are unauthorized or deceptive, usually so that they can be blocked or reviewed. Bolton and Hand describe it as a statistical problem with special features: classes are very unequal, labels arrive late and are sometimes wrong, and fraudsters change their behavior in response to controls {bolton}. In practice, detection is organized as a pipeline in which automatic rules and models rank transactions and human investigators examine the highest-ranked alerts {dalpozzolo14}. Figure 2.1 shows the main families of approaches, from fixed rules and supervised learning to anomaly detection, sequence models and hybrid systems.
+
+!FIG diagrams/out/fig2_1_taxonomy.png|4.2|Taxonomy of transaction fraud-detection approaches
+
+### 2.2.3 Transaction Features and History
+Raw fields are rarely used directly: amounts are log-transformed, timestamps become the hour of day or its sine and cosine, and categories are encoded. Bahnsen et al. showed that features describing a customer's spending pattern change detection results considerably on real card data {bahnsen}, and Whitrow et al. found that aggregating a card's earlier transactions helps in many, though not all, settings {whitrow}. LayerNet's `featureEngineering` module computes a versioned feature set that includes `log1p(amount)`, the UTC hour, counts and sums over the previous hour and day, and change flags, but in the current release these features are displayed as context only. In the PaySim research track, the history of a recipient account <i>R</i> at step <i>t</i> consists of earlier transactions received by <i>R</i> at strictly smaller steps, capped at the 17 most recent step buckets, as Figure 2.2 illustrates.
+
+!FIG diagrams/out/fig2_2_asof.png|4.0|As-of recipient history window used in the PaySim experiments
+
+### 2.2.4 Class Imbalance and Evaluation Metrics
+Fraud is rare. The ULB dataset contains 492 fraud cases in 284,807 transactions, about 0.17 % {ulbkaggle}, so a classifier that labels every record as legitimate reaches an accuracy above 99 % while detecting nothing. Common responses are class weighting, under-sampling and synthetic over-sampling such as SMOTE {chawla}, together with metrics that focus on the positive class. With rare positives, the precision-recall view is more informative than the ROC view {saito}, and optimizing ROC area does not guarantee a good precision-recall area {davis}. LayerNet therefore uses training-only class weights and reports PR-AUC, Average Precision and ROC-AUC separately, with precision, recall, F1 and confusion counts at a threshold selected on the validation split.
+
+### 2.2.5 Machine-Learning Approaches
+The project uses or discusses five model families. A Random Forest averages the votes of many decision trees trained on bootstrap samples {breiman}, and XGBoost builds regularized gradient-boosted trees {xgboost}; both are used in the ULB benchmark and served by the Benchmark page. Isolation Forest is an unsupervised method that isolates anomalies with fewer random splits {iforest}, and a weighted ensemble combines it with the two supervised models. Logistic regression trained by stochastic gradient descent forms both arms of the PaySim history ablation, and a one-layer Transformer encoder, which applies self-attention to a sequence of tokens {vaswani}, is used in the PaySim temporal experiment. The experiments rely on scikit-learn {sklearn}, the XGBoost library and PyTorch.
+
+### 2.2.6 Temporal Leakage and Concept Drift
+Leakage is the use, during training or evaluation, of information that would not be available when the prediction is made {kaufman}. In transaction data its most common forms are random train-test splits, which let a model learn from the future, and history features that include the current or later transactions. A related problem is concept drift, a change over time in the relationship between inputs and labels, which Gama et al. recommend handling by evaluating learning systems in time order {gama}. LayerNet does not adapt to drift, but it guards against leakage with chronological splits, history built only from strictly earlier steps, and thresholds chosen on validation data and frozen before test scoring, so its reported results include any change between the training and test periods.
+
+### 2.2.7 Explainability and Calibration
+Analysts need to know why a case was raised. LIME explains a single prediction with a simple local model fitted on perturbed copies of the input {ribeiro}, and SHAP attributes a prediction to the input features using Shapley values {lundberg}. LayerNet takes a simpler route for its live score: the rules baseline is additive, so its explanation is exact and is shown as the points contributed by each rule. A score is calibrated when, among all cases that receive a score p, a fraction p are positive. Boosted trees and modern neural networks are often poorly calibrated and need corrections such as Platt scaling, isotonic regression or temperature scaling {niculescu} {guo}. Because LayerNet calibrates none of its scores, they are always described as priorities, not probabilities.
+
+## 2.3 Existing Studies and Systems
+Bolton and Hand reviewed statistical methods for detecting fraud in credit card, telecommunication, money-laundering and medical-claim data {bolton}. They separated supervised methods, which need labeled fraud, from unsupervised methods, which flag departures from normal behavior. Abdallah, Maarof and Zainal surveyed fraud detection systems and listed recurring obstacles such as concept drift, real-time support, skewed classes and large data volumes {abdallah}. Dal Pozzolo et al. analyzed a large real card dataset from an industrial partner and stressed class imbalance, non-stationarity and realistic assessment {dalpozzolo14}. These reviews shaped LayerNet's chronological evaluation, its imbalance-aware metrics and its explicit scope limits.
+
+Several studies examine how transaction history should be represented. Whitrow et al. condensed a card's history into aggregated features and found that the aggregation window strongly affects results {whitrow}. Correa Bahnsen et al. added periodic features based on the time of day of earlier transactions {bahnsen}, an idea followed by LayerNet's cyclic hour features. Jurgovsky et al. treated card fraud detection as sequence classification with Long Short-Term Memory networks and found that the sequence learner helped mainly for offline transactions {jurgovsky}. Their result motivates LayerNet's temporal experiment, which uses a Transformer encoder {vaswani} instead of a recurrent network.
+
+Other work models the detection system as it operates in practice. Dal Pozzolo et al. noted that investigators can check only a limited number of alerts and that their feedback arrives sooner than the remaining labels, and they evaluated alert precision rather than accuracy {dalpozzolo18}; this supports LayerNet's view of the score as an order for a review queue. Carcillo et al. used unsupervised outlier scores as extra features for a supervised classifier {carcillo}, an idea that LayerNet's ULB ensemble explores at the score level. Dal Pozzolo, Caelen, Johnson and Bontempi showed that under-sampling distorts predicted probabilities {dalpozzolo15}, and their public ULB/Worldline dataset {ulbkaggle} is the basis of LayerNet's supervised benchmark.
+
+Graph-based and simulated data offer further views. Weber et al. released a labeled Bitcoin transaction graph and found that a Random Forest with node features remained a strong baseline against graph convolutional networks {weber}. Liu et al. addressed class imbalance in graph-based fraud detection with PC-GNN, which samples labels and neighbors so that the minority class is better represented {liu21}. Lopez-Rojas, Elmir and Axelsson introduced PaySim, which generates mobile-money transactions from aggregated real data {paysim} and is distributed publicly {paysimkaggle}. LayerNet's recipient history is a one-hop view of such a transaction graph, and PaySim serves only as a synthetic test bed.
+
+Commercial fraud platforms are widely deployed by banks and payment processors, but their models, features and evaluation are proprietary and cannot be inspected or cited reliably. Open-source projects on public code-hosting sites commonly pair the ULB dataset with a notebook or a simple dashboard. They are useful for learning, but their evaluation details vary and are often undocumented, so this report compares LayerNet only with published studies whose methods are stated openly.
+
+## 2.4 Comparison of Existing Systems
+Table 2.1 compares the most relevant studies with LayerNet. It shows that history and time-aware evaluation matter, but most studies rely on private data and none provides an investigator interface that keeps the origin of each score visible. LayerNet addresses these gaps in four ways: every score is labeled with its method, meaning and limitations; the data are split chronologically and thresholds are chosen on validation data only; the value of history is isolated in a pre-registered ablation over three seeds; and the trained models are confined to a labeled Benchmark page with integrity-checked artifacts.
+
+!TABLE Comparison of reviewed studies with LayerNet
+!WIDTHS 1.4,1.3,1.2,1.3,1.3
+| Study | Data | Uses history | Time-aware evaluation | Main limitation |
+| Dal Pozzolo et al. {dalpozzolo14} | Real card data (private) | Yes | Yes | Private data |
+| Whitrow et al. {whitrow} | Real card data (private) | Aggregates | Yes | Window choice affects results |
+| Jurgovsky et al. {jurgovsky} | Real card data (private) | Sequences (LSTM) | Yes | Gains limited to some transaction types |
+| Dal Pozzolo et al. {dalpozzolo18} | Real card data (private) | Aggregates | Yes, with delayed labels | Specific operational setting |
+| Weber et al. {weber} | Bitcoin graph (public) | Graph neighborhood | Yes (time steps) | Cryptocurrency domain |
+| Lopez-Rojas et al. {paysim} | Synthetic (PaySim) | Not studied | Not studied | Not real customers |
+| LayerNet (this project) | ULB (public), PaySim (synthetic) | Recipient history | Chronological splits, frozen thresholds | Synthetic history data; rules-based live score |
+
+## 2.5 Summary
+This chapter defined the constructs behind LayerNet and reviewed the studies on which it builds. The literature agrees that fraud data are imbalanced and change over time, that history and graph structure can carry signal, that scores need explanation and calibration before they are trusted, and that evaluation must respect time order. LayerNet responds with a transparent rules baseline in a working interface, tree-based models evaluated on a chronological ULB split, and a leakage-aware study of recipient history on PaySim, which the next chapter turns into concrete requirements.
+
+@CHAPTER 3|REQUIREMENTS SPECIFICATION
+
+## 3.1 Introduction
+This chapter specifies what LayerNet must do and the conditions under which it must do it. The requirements follow the structure recommended by ISO/IEC/IEEE 29148 {iso29148}: interface requirements, functional requirements, use cases, non-functional requirements, and resource, data and feasibility considerations. They were written for four stakeholder groups: the analyst, who is the primary user and enters and reviews transactions; the researcher, who runs the offline Python pipeline; the supervisor and evaluators, who review the prototype and this report; and Google, which supplies the Gemini API for the optional assistant. Each requirement has an identifier, unimplemented requirements are marked as such, and Appendix – I traces every requirement to its source files and tests.
+
+## 3.2 Interface Requirements
+### 3.2.1 Hardware Interface
+LayerNet runs in a modern web browser served by a local Next.js server, and the trained-model benchmark additionally needs a local Python environment. Table 3.1 lists the hardware on which the system was developed and verified. No graphics processor is needed, because the application and the benchmark replay run on an ordinary laptop processor, and an internet connection is needed only for the optional assistant. Smaller machines may also work, but they were not tested, so they are not listed as supported.
+
+!TABLE Hardware interface requirements
+!WIDTHS 1.6,2.4,2.5
+| Item | Requirement | Note |
+| Processor | 64-bit x86 CPU | No GPU needed |
+| Memory | 8 GB RAM or more | PaySim experiments used about 0.42 GB per process |
+| Storage | About 2 GB free | Datasets are stored separately |
+| Display | 360 px wide or larger | Layout verified at 360, 390, 768, 1280 and 1440 px |
+| Network | Internet access for the assistant only | All other features work offline |
+
+### 3.2.2 Software Interface
+Table 3.2 lists the software on which LayerNet depends, with the versions recorded in the repository and in the verified local environment. The web application is written in TypeScript on Next.js and React, styled with Tailwind CSS {tailwind}, and uses the Vercel AI SDK {aisdk} to stream replies from Gemini. The research pipeline is a Python package that uses scikit-learn and XGBoost, and the automated tests use Vitest {vitest} and Playwright {playwright}. All of these tools are free and open source, apart from the optional Gemini API service.
+
+!TABLE Software interface requirements
+!WIDTHS 1.9,1.9,2.7
+| Software | Version | Purpose |
+| Windows | 11 | Development and execution |
+| Node.js | 24.12 | Runs the Next.js server |
+| Next.js / React | 16.3.1 / 19.2.8 | Web framework and UI library |
+| TypeScript, Tailwind CSS | 5, 4 | Typed source code and styling |
+| Vercel AI SDK, @ai-sdk/google | 7, 4 | Streaming chat with Gemini |
+| Python | 3.12.14 | ML package `layernet_ml` |
+| scikit-learn, XGBoost, pandas, NumPy | As pinned in `ml/requirements.txt` | Training, replay and evaluation |
+| Vitest, Playwright | 3, 1.63 | Component and end-to-end tests |
+
+## 3.3 Functional Requirements
+Table 3.3 lists the functional requirements of the web application, and Table 3.4 lists those of the offline research pipeline, which is run from the command line rather than from the interface. Each requirement is stated as a single, testable behavior of the system. All twelve application requirements are implemented; FR-04 is limited to display by design, and FR-11 depends on a Gemini API key being configured on the server. In the research pipeline, the history ablation is implemented but its result is partial, and validation on a second real dataset remains planned work.
+
+!TABLE Functional requirements of the LayerNet web application
+!WIDTHS 0.7,4.3,1.5
+| ID | Requirement | Status |
+| FR-01 | The system shall let the analyst enter a transaction with Transaction ID, Amount, Type, Location, Channel and Timestamp, and optional Account ID and Device ID. | Implemented |
+| FR-02 | The system shall validate required fields, show a specific error for each invalid field and mark it with `aria-invalid`. | Implemented |
+| FR-03 | The system shall compute a 0–100 priority score with rules baseline v1 and show the risk band, decision, each contribution and the limitations of the method. | Implemented |
+| FR-04 | The system shall compute behavioral features and an account baseline from earlier saved records and display them as context. | Implemented (display only) |
+| FR-05 | The system shall save every analyzed transaction in browser storage under the key `layernet-transactions`. | Implemented |
+| FR-06 | The system shall show dashboard indicators, a score trend, a risk distribution, high-risk alerts and recent records for a chosen date range. | Implemented |
+| FR-07 | The system shall provide a searchable, filterable and sortable history with a details drawer for each record. | Implemented |
+| FR-08 | The system shall provide analytics on saved records by risk, type, channel and decision. | Implemented |
+| FR-09 | The system shall accept a ULB-format CSV of at most 2 MB and 5,000 rows and return XGBoost and Random Forest scores and, when labels are present, metrics. | Implemented |
+| FR-10 | The system shall let the analyst choose a System, Light or Dark theme and keep it after reload under the key `layernet-settings`. | Implemented |
+| FR-11 | The system shall provide an optional chat assistant for general questions that neither reads saved records nor changes scores. | Implemented (needs API key) |
+| FR-12 | The system shall show a health page with the status of storage, the chat configuration and the benchmark artifacts. | Implemented |
+
+!TABLE Functional requirements of the offline research pipeline
+!WIDTHS 0.8,4.2,1.5
+| ID | Requirement | Status |
+| RFR-01 | The pipeline shall remove exact duplicate ULB rows and split the rest chronologically 60/20/20, keeping tied timestamps together. | Implemented |
+| RFR-02 | The pipeline shall train XGBoost, Random Forest, Isolation Forest and a weighted ensemble, using only validation data for model and threshold selection. | Implemented |
+| RFR-03 | The pipeline shall write a manifest for each model with data hash, split, configuration, threshold and metrics. | Implemented |
+| RFR-04 | The pipeline shall build PaySim recipient histories only from strictly earlier steps, excluding labels, balances and same-step or future events. | Implemented |
+| RFR-05 | The pipeline shall compare a current-only arm with a current-plus-history arm under an identical model, budget and threshold rule over fixed seeds. | Implemented (result partial) |
+| RFR-06 | The pipeline shall replay saved models on the test split and reproduce the recorded metrics within a stated tolerance. | Implemented |
+| RFR-07 | The pipeline shall be validated on a second real dataset with persistent identities. | Not implemented |
+
+## 3.4 Use Case Model
+Figure 3.1 shows the use case model of LayerNet. The primary actor is the analyst, who is the single user of the local prototype and initiates all eight use cases. Two secondary actors are external systems: the Google Gemini API, which is used only by the assistant, and the local Python ML runtime, which is used only by the benchmark replay. The use case for analyzing a transaction always includes input validation and saving the record to browser storage, which is shown with «include» relationships. No use case changes the trained models or sends saved records outside the browser.
+
+!FIG diagrams/out/fig3_1_usecase.png|4.4|Use case diagram of LayerNet
+
+## 3.5 Use Cases
+The two use cases that carry the main workflow and the main technical risk are described in full. Table 3.5 describes UC-01, in which the analyst analyzes and saves a transaction, and Table 3.6 describes UC-05, in which the analyst runs the benchmark replay of the trained ULB models. The remaining six use cases follow the same pattern of a single actor working on saved data, so they are summarized in Table 3.7 together with the functional requirements that each one satisfies. The alternative flows record how the system behaves when input is invalid or a step fails.
+
+!TABLE Use case UC-01: Analyze transaction
+!WIDTHS 1.5,5.0
+| Field | Description |
+| Actor | Analyst |
+| Precondition | The application is open in a browser with localStorage enabled. |
+| Main flow | 1. The analyst enters the transaction details and presses Analyze Transaction. 2. The system validates the required fields. 3. The system loads earlier saved records, computes features and the account baseline, and applies rules baseline v1. 4. The system saves the record and shows the score, risk, decision, contributions and limitations. |
+| Alternative flow | 2a. A required field is missing or invalid: the system shows the error next to the field, sets `aria-invalid` and does not analyze. 4a. Saving fails: the system shows an error and keeps the form values. |
+| Postcondition | The new record appears on the Dashboard, History and Analytics pages (FR-01 to FR-05). |
+
+!TABLE Use case UC-05: Run ULB benchmark replay
+!WIDTHS 1.5,5.0
+| Field | Description |
+| Actors | Analyst (primary); Python ML runtime (secondary) |
+| Precondition | The Python environment `ml/.venv` exists, and the XGBoost and Random Forest artifacts are present. |
+| Main flow | 1. The analyst chooses a CSV with the columns Time, Amount and V1–V28, and optionally Class. 2. The system checks the file size and sends it to `/api/benchmark`. 3. The Python replay validates the columns, verifies each model file's SHA-256 against its manifest and scores the rows. 4. The system shows model agreement, flags, metrics when labels exist, and the first 100 predictions. |
+| Alternative flow | 2a. The file is too large: the request is rejected with a message. 3a. Columns are missing, a hash does not match or the run exceeds 120 s: the system shows the failure type. |
+| Postcondition | Results are shown only; nothing is saved to history (FR-09). |
+
+!TABLE Summary of the remaining use cases
+!WIDTHS 0.8,1.6,4.1
+| ID | Name | Summary |
+| UC-02 | View dashboard | The analyst selects a date range and sees indicators, trend, distribution, alerts and recent records (FR-06). |
+| UC-03 | Review history | The analyst searches, filters and sorts saved records and opens a details drawer that keeps keyboard focus (FR-07). |
+| UC-04 | View analytics | The analyst views breakdowns of saved records, labeled as saved analyses rather than confirmed fraud (FR-08). |
+| UC-06 | Manage settings | The analyst selects System, Light or Dark; the choice is validated, saved and applied after reload (FR-10). |
+| UC-07 | Ask assistant | The server streams a Gemini reply under a fixed system prompt, or reports that no key is configured (FR-11). |
+| UC-08 | Check health | The analyst views storage availability, whether a chat key is configured and whether artifacts are present (FR-12). |
+
+## 3.6 Non-Functional Requirements
+Table 3.8 lists the non-functional requirements of LayerNet and the way in which each one was checked. They cover performance, reliability, security, consistency of the displayed scores, usability and accessibility, and maintainability. The accessibility requirement follows the principles of the Web Content Accessibility Guidelines 2.2 {wcag}, and the security requirements keep the API key on the server and stop a modified model file from being loaded. Where a requirement was checked only by code review rather than by an automated test, the verification column says so explicitly.
+
+!TABLE Non-functional requirements
+!WIDTHS 0.75,1.15,2.62,1.75
+| ID | Category | Requirement | Verification |
+| NFR-01 | Performance | Scoring and saving a single record shall complete without a visible delay. | Manual and Playwright runs |
+| NFR-02 | Performance | Benchmark replay shall finish within 120 s for at most 5,000 rows or report a timeout. | Server timeout; 2,575-row run |
+| NFR-03 | Reliability | Corrupted or missing stored data shall not crash a page; invalid settings fall back to System. | Code review; settings tests |
+| NFR-04 | Security | The Gemini API key shall be read only on the server and never sent to the browser. | Code review; route test |
+| NFR-05 | Integrity | Model files shall be loaded only if their SHA-256 matches the manifest. | `benchmark_replay.py` |
+| NFR-06 | Consistency | Every displayed score shall state its method and meaning. | Page review; QA sweep |
+| NFR-07 | Accessibility | Forms shall have labels, error messages and `aria-invalid`; dialogs shall trap focus; there shall be no horizontal overflow from 360 to 1440 px. | Playwright locators; overflow check |
+| NFR-08 | Maintainability | Scoring, storage and features shall sit in typed `lib` modules behind a repository interface. | Code structure |
+
+## 3.7 Resource Requirements
+The project needed no paid infrastructure. The equipment was one Windows 11 laptop meeting the hardware requirements in Table 3.1, and the software consisted of the free and open-source tools listed in Table 3.2. The data came from the public ULB/Worldline dataset {ulbkaggle} and the public PaySim data {paysimkaggle}. No purchase was required; the Gemini API is optional, and any usage charges under a paid plan lie outside the project budget. The human effort covered requirements, interface design, development, testing, machine-learning experiments and documentation by the project team, with guidance and review from the project supervisor.
+
+## 3.8 Database Requirements
+LayerNet does not use a database server. The web application keeps its data in the browser's localStorage under two keys: `layernet-transactions` holds a JSON array of analyzed transactions identified by Transaction ID, each with its score, risk band and status, and `layernet-settings` holds the theme, which is validated before it is saved. The research pipeline keeps its data as files: model artifacts with manifests in `ml/artifacts`, which are read-only at run time, and datasets in `ml/data`, which are checked against recorded hashes and excluded from version control. Because localStorage belongs to one browser profile, records are not shared between users or devices and are lost when browser data are cleared, so a server-side database with an audit trail is listed as future work.
+
+## 3.9 Project Feasibility
+### 3.9.1 Technical Feasibility
+All components use mature, documented open-source tools. The web application builds successfully with 13 routes, and the trained models load and score uploaded rows on an ordinary laptop without a graphics processor. The heaviest experiment, the PaySim history ablation, took about ten minutes of training per seed and less than 0.5 GB of working memory. The project is therefore technically feasible with the equipment that was available to the team.
+
+### 3.9.2 Operational Feasibility
+The interface follows familiar dashboard patterns: a sidebar, page headings, forms with inline errors, tables and drawers. Every score explains itself, so an analyst does not need to understand the underlying code to use it. Because the prototype stores data in one browser and has no user accounts, it is operationally suited to demonstration, teaching and research, but not to daily use by a bank's fraud team.
+
+### 3.9.3 Economic Feasibility
+The project used only free software and public datasets, and it required no hosting, licenses or special hardware. The only possible cost is the optional Gemini API when it is used under a paid plan, and the application works without it, because every other feature runs locally. Future costs, such as cloud hosting or a managed database, would arise only if the prototype were deployed for several users. The project is therefore economically feasible within the resources of a student team.
+
+### 3.9.4 Legal and Ethical Feasibility
+Both datasets are public research datasets: the ULB features are anonymized by principal component analysis, and PaySim is synthetic, so no personal data of real customers are processed. The application never sends saved records to the assistant. Because a wrongly flagged transaction can harm a customer, LayerNet makes no automatic decisions; its scores are labeled as review priorities rather than verdicts, and use on real customers is outside its scope.
+
+## 3.10 Summary
+This chapter specified twelve functional requirements for the web application, seven for the research pipeline, eight use cases, eight non-functional requirements, and the hardware, software, resource and data requirements of the project. The feasibility analysis showed that LayerNet can be built and run with free tools on one computer, without processing personal data. Chapter 4 describes the design that satisfies these requirements and shows the implemented interface.
+
+@CHAPTER 4|SYSTEM MODELLING
+
+## 4.1 Introduction
+This chapter presents the design of LayerNet. Section 4.2 describes the overall system design and architecture, including the offline research pipeline and its recorded results. Section 4.3 explains the design approach and compares it with the alternative. Section 4.4 presents the interface with screenshots of the implemented application. Section 4.5 describes the system through Kruchten's 4+1 view model {kruchten}, and Section 4.6 gives the logical data model. All diagrams were drawn from the current source code.
+
+## 4.2 System Design
+Figure 4.1 shows LayerNet in its environment. The analyst works in a web browser, and the Next.js application stores records and settings in the browser's localStorage. Chat messages are sent to the Google Gemini API over HTTPS, and uploaded ULB-format CSV files are passed to a local Python runtime that holds the saved model artifacts. These are the only three external connections of the system, and each of them is reached through a single, well-defined route, which keeps the boundary of the system easy to review.
+
+!FIG diagrams/out/fig4_1_context.png|5.6|System context diagram of LayerNet
+
+The application follows the layered architecture shown in Figure 4.2. The presentation layer contains the pages and shared components, such as the application shell and the history table. The application logic layer contains the transaction service, the rules baseline, feature engineering and metrics, all written as typed TypeScript modules. Rules baseline v1 adds log-scaled amount points (at most 50) and fixed points for type, channel and UTC night-time hours, clamps the sum to 0–100, assigns risk High at 80 or more and Medium at 40 or more, and decides Block at 85 or more and Review at 60 or more. The persistence and server layer contains the localStorage repository, the chat route, limited to 30 s, and the benchmark route, which runs the Python replay in a child process with a 120 s timeout.
+
+!FIG diagrams/out/fig4_2_layers.png|3.9|Layered architecture of the LayerNet web application
+
+The offline research pipeline, shown in Figure 4.3, is a separate part of the system that is run from the command line. Track A prepares the ULB data, splits them chronologically, trains the supervised and unsupervised models, selects thresholds on validation data and writes a manifest for each model. Track B builds as-of recipient histories from PaySim and runs the temporal experiment and the history ablation. The only connection between the pipeline and the web application is the pair of saved ULB model artifacts that the Benchmark page replays.
+
+!FIG diagrams/out/fig4_3_research.png|4.6|Offline research pipeline (Track A: ULB; Track B: PaySim)
+
+Table 4.1 reproduces the held-out test results recorded in the ULB manifests. The test split contains 56,746 rows with only 74 fraud cases, so the thresholded figures rest on a small number of positives and describe one chronological split rather than general performance. Random Forest achieved the highest Average Precision, 0.8073, and XGBoost the highest recall, 0.784, at the cost of many more false positives. Isolation Forest, which uses no labels, ranked transactions well by ROC-AUC but had very low precision, which shows why ROC-AUC alone can be misleading on imbalanced data.
+
+!TABLE ULB held-out test results recorded in the model manifests
+!WIDTHS 0.9,0.72,0.74,0.85,0.74,0.6,0.5,1.22
+| Model | PR-AUC | Avg. Precision | ROC-AUC | Precision | Recall | F1 | TP/TN/FP/FN |
+| XGBoost | 0.7723 | 0.7726 | 0.9803 | 0.339 | 0.784 | 0.473 | 58/56559/113/16 |
+| Random Forest | 0.8070 | 0.8073 | 0.9779 | 0.981 | 0.716 | 0.828 | 53/56671/1/21 |
+| Isolation Forest | 0.0348 | 0.0357 | 0.9431 | 0.027 | 0.770 | 0.052 | 57/54610/2062/17 |
+| Weighted ensemble | 0.6088 | 0.6110 | 0.9795 | 0.623 | 0.581 | 0.601 | 43/56646/26/31 |
+
+For PaySim, the temporal experiment recorded a test Average Precision of 0.0386 for the current-only control, 0.0804 for the temporal linear baseline and 0.1458 for the one-layer Transformer, on 817,649 recipient targets with 4,250 frauds. Because those models also differ in capacity, the history ablation isolated the effect of history: both arms used the same logistic classifier, budget and threshold rule, and differed only in access to the 17 prior history buckets. Table 4.2 shows that history improved Average Precision for every seed. However, the 95 % interval over three seeds includes zero, so no statistical significance is claimed, and the phase is recorded as partial because an aborted test-scoring attempt deviated from the pre-registered procedure.
+
+!TABLE PaySim history ablation: test Average Precision by seed
+!WIDTHS 1.4,1.6,1.6,1.9
+| Seed | Current only | Current + history | Difference |
+| 42 | 0.0386 | 0.0804 | +0.0418 |
+| 123 | 0.0163 | 0.0433 | +0.0270 |
+| 2026 | 0.0386 | 0.1142 | +0.0756 |
+| Mean (95 % t-interval) | — | — | +0.0481 [−0.0138, 0.1100] |
+
+## 4.3 Design Approach
+LayerNet used a **top-down, modular design approach**. The system was first divided into the presentation, application logic and persistence layers, then each layer into modules with one responsibility, and finally each module into typed functions and components. This approach fitted the project because the requirements were known at the level of pages and workflows before the details of features and metrics were settled. It also made the most important constraint, that live scoring must remain separate from trained models, a decision about module boundaries that could be enforced from the start. Finally, the repository interface allows the storage to change from localStorage to a server database without changing the pages or the scoring logic.
+
+The alternative, a bottom-up approach, starts from small reusable parts and composes them into larger ones. It was used in a limited way for the shared interface components, such as cards, badges and charts, which were built and tried in the Component Lab before the pages used them. Within the top-down structure, the code uses object-oriented ideas where they help, such as the `TransactionService` class with an injected `TransactionRepository`, and pure functional modules elsewhere, such as the scoring and feature functions, which are easy to test because they depend only on their inputs.
+
+## 4.4 Interface Design
+The interface was designed around the analyst's workflow: analyze a transaction, see why it scored as it did, and review saved records later. Its design principles are consistency, with one shell, one card style and one table style; honesty, because every score shows its method and meaning; accessibility, through labels, focus order, visible focus and keyboard support; and responsiveness, with a sidebar on large screens and a drawer on small ones. The application has eight screens, one for each use case: Dashboard, Analysis, History, Analytics, Benchmark, Settings, Health and the assistant panel.
+
+### 4.4.1 High Fidelity Prototype
+The figures in this section are screenshots of the implemented application, not mock-ups. They were captured on 23 November 2026 at a 1440 × 900 viewport in the light theme, and the three records shown (TX-RPT-001 to TX-RPT-003) were created through the Analysis form during the capture. Figure 4.4 shows the Dashboard, whose indicators, score trend, risk distribution and alerts are all computed from those saved records. Figure 4.5 shows the result for TX-RPT-002, a refund of 1,000,000 through the Web channel at 02:00 UTC: its score of 80 is the sum of the listed contributions (50 + 10 + 8 + 12), which gives risk High and the decision Review, because Block requires 85 or more.
+
+!FIG figures/screens/dashboard.png|4.3|Dashboard with three records created through the Analysis form
+
+!FIG figures/screens/analysis-result.png|4.6|Analysis page showing the result of a saved transaction
+
+Figure 4.6 shows the History page with the details drawer of a selected record, which can be searched by transaction ID or location, filtered and sorted. Figure 4.7 shows the Benchmark page after uploading 2,575 genuine rows from the ULB test period, consisting of the first 2,500 legitimate rows and all 75 raw fraud rows in that window. The fraud share of this sample was deliberately raised for the demonstration, so its metrics are not comparable with Table 4.1, and the page itself states that they apply only to the uploaded rows. The other screens use the same layout and components: Analytics, Settings, Health and the assistant panel. The layout was also verified at a mobile width of 390 pixels.
+
+!FIG figures/screens/history-drawer.png|4.6|History page with the record details drawer
+
+!FIG figures/screens/benchmark-results.png|4.3|Benchmark page with server-side replay of the saved ULB models
+
+## 4.5 4+1 View Model
+Kruchten's 4+1 view model describes a software architecture through four views, which are tied together by a set of scenarios {kruchten}. For LayerNet, the logical view shows the domain types and their relationships in a class diagram, and the process view shows the run-time behavior in an activity diagram and two sequence diagrams. The development view shows the organization of the code in a component diagram, and the physical view maps the software onto hardware in a deployment diagram. The scenarios are the use cases of Chapter 3, in particular UC-01 and UC-05, which are traced through all four views in Section 4.5.5.
+
+### 4.5.1 Logical View
+Figure 4.8 shows the class diagram. TypeScript types are drawn as UML classes, interfaces are marked «interface», and modules of pure functions are marked «module»; only the attributes and operations needed to explain the design are shown. `Transaction` extends `TransactionRecord` with the score, risk and status. `TransactionService` aggregates a `TransactionRepository`, uses the scoring and feature modules, and creates an `AnalysisResult`, which is composed of `TransactionFeatures` and a `BehavioralBaseline`. The localStorage repository is one implementation of the repository interface.
+
+!FIG diagrams/out/fig4_10_class.png|4.9|Class diagram of the LayerNet domain and services
+
+### 4.5.2 Process View
+Figure 4.9 is the activity diagram of the main workflow, analyzing a transaction. The workflow has two decision points: input validation, which returns the analyst to the form with field errors, and saving, which either shows the result and a confirmation or shows an error. Between them, the system loads earlier records, computes features and the account baseline for display only, and applies the rules baseline. The amount contributes min(50, floor(10 · log10(max(1, amount)))) points, and type, channel and night-time hours then add or subtract fixed points, so the result can always show the exact reason for every score.
+
+!FIG diagrams/out/fig4_11_activity.png|3.0|Activity diagram: analyze transaction
+
+Figures 4.10 and 4.11 are the sequence diagrams of the two most important interactions. In the first, analyzing and saving a transaction, all messages pass between objects inside the browser: the page calls the transaction service, which reads earlier records from the repository, computes features, applies the rules baseline and saves the result, and no server call is involved. In the second, the benchmark replay, the page sends the uploaded file to the Node.js route, which starts the Python process and exchanges data with it through standard input and output. Every model file is checked against its manifest hash before it is loaded, and a timeout or validation error is returned to the page as a typed failure.
+
+!FIG diagrams/out/fig4_13_seq_analyse.png|5.3|Sequence diagram: analyze and save a transaction
+
+!FIG diagrams/out/fig4_14_seq_benchmark.png|5.3|Sequence diagram: ULB benchmark replay
+
+### 4.5.3 Development View
+Figure 4.12 shows the component diagram. The Next.js application contains the UI pages, the shared components, the domain logic in `lib` and two API routes; the chat route depends on the AI SDK and the Gemini API, and the benchmark route spawns the Python replay. The Python package contains the replay component used at run time and the training and evaluation components used offline. The only artifact shared between the two parts is the `ml/artifacts` directory, which the training components write and the replay component reads.
+
+!FIG diagrams/out/fig4_15_component.png|5.0|Component diagram of LayerNet
+
+### 4.5.4 Physical View
+Figure 4.13 shows the deployment diagram of the verified set-up. One local PC runs the web browser, which holds the client bundle and localStorage, the Node.js 24 server, which serves the application on localhost, and the Python 3.12 virtual environment, which holds the replay package and the model artifacts. The Gemini API is the only external node and is reached over HTTPS. No cloud deployment has been carried out; deploying the server and replacing localStorage with a database are proposed as future work.
+
+!FIG diagrams/out/fig4_16_deployment.png|4.4|Deployment diagram of the verified local set-up
+
+### 4.5.5 Scenario View
+The scenarios that connect the four views are the use cases of Section 3.5. UC-01, analyzing a transaction, exercises the logical view through `TransactionService` and its collaborators, the process view through Figures 4.9 and 4.10, the development view through the UI and domain-logic components, and the physical view through the browser node only. UC-05, the benchmark replay, exercises the server route, the Python component and the artifact store, as shown in Figures 4.11, 4.12 and 4.13. Together, the two scenarios cover every element of the architecture.
+
+## 4.6 Entity Relationship Diagram
+LayerNet has no relational database, so Figure 4.14 is a **logical data model** of the JSON records kept in browser storage rather than a database schema. Each transaction record is identified by its Transaction ID and embeds its analysis snapshot, which holds the uncalibrated score, the risk band and the status Cleared, Reviewed or Flagged. Account and device identifiers are optional attributes that group records for the behavioral baseline, and no separate account or device records are stored. The settings record holds the theme preference under `layernet-settings`, and both kinds of record belong to the browser profile of one site origin.
+
+!FIG diagrams/out/fig4_17_erd.png|4.6|Logical data model of the records stored in the browser
+
+## 4.7 Summary
+This chapter described the design of LayerNet: a layered Next.js application whose live scoring is a transparent rules baseline, a separate benchmark path for the trained ULB models, and an offline research pipeline whose recorded results are summarized in Tables 4.1 and 4.2. The interface was shown through screenshots of the implemented system, and the architecture was described through the 4+1 views and a logical data model. The design meets the requirements of Chapter 3 while keeping clear limits: single-user local storage, no authentication, no cloud deployment and no trained model in the live score.

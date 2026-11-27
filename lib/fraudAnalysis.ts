@@ -1,13 +1,17 @@
+import { formatAmount } from "./currency";
 import type { AnalysisResult, RiskLevel, TransactionRecord } from "./types";
 
 const ANALYSIS_METHOD = "LayerNet rules baseline v1";
 
 export function analyzeTransaction(
-  tx: Pick<TransactionRecord, "transactionId" | "amount" | "type" | "location" | "channel" | "timestamp">,
+  tx: Pick<TransactionRecord, "transactionId" | "amount" | "currency" | "type" | "location" | "channel" | "timestamp">,
 ): Omit<AnalysisResult, "features" | "behavioralBaseline"> {
   const base = Math.min(50, Math.floor(Math.log10(Math.max(1, tx.amount)) * 10));
   let score = base;
-  const factors: string[] = [`Amount baseline: $${tx.amount.toFixed(2)} contributes ${base} points using a log-scaled heuristic.`];
+  // The baseline uses the nominal amount only; it is not currency-adjusted (no FX conversion is authorized).
+  const factors: string[] = [
+    `Amount baseline: ${formatAmount(tx.amount, tx.currency)} contributes ${base} points using a log-scaled heuristic on the nominal amount (not currency-adjusted).`,
+  ];
 
   if (tx.type === "Refund") {
     score += 10;
@@ -64,6 +68,7 @@ export function analyzeTransaction(
       "No trained Transformer, XGBoost, Random Forest, or Isolation Forest adapter is registered; no fraud probability is produced.",
       "Location is collected but not scored because no validated location-risk source is configured.",
       "The UTC time rule is a fixed heuristic; account-local timezone is unknown.",
+      "The amount baseline uses the nominal amount in its original currency without exchange-rate adjustment, so the same value scores differently across currencies.",
     ],
   };
 }

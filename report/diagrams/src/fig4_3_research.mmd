@@ -1,0 +1,20 @@
+flowchart LR
+  subgraph TA["Track A: ULB (offline)"]
+    direction TB
+    a1["creditcard.csv<br/>284,807 rows"] --> a2["Remove exact duplicates<br/>283,726 rows, 473 fraud"]
+    a2 --> a3["Chronological 60/20/20 split<br/>by elapsed Time"]
+    a3 --> a4["Fit XGBoost, Random Forest,<br/>Isolation Forest, weighted ensemble"]
+    a4 --> a5["Validation: early stopping,<br/>candidate and threshold selection"]
+    a5 --> a6["Held-out test metrics<br/>(manifests)"]
+    a6 --> a7["Saved XGBoost and RF artifacts<br/>used by Benchmark replay page"]
+  end
+  subgraph TB2["Track B: PaySim (offline)"]
+    direction TB
+    b1["PaySim v2 archive<br/>6,362,620 rows"] --> b2["C-prefixed recipient targets;<br/>whole-step split 1-281 / 282-355 / 356-743"]
+    b2 --> b3["As-of history:<br/>strictly earlier steps, cap 17"]
+    b3 --> b4["Phase 12: current-only, temporal linear,<br/>one-layer Transformer"]
+    b3 --> b5["Phase 16 ablation: SGD current-only vs<br/>current + history; seeds 42 / 123 / 2026"]
+    b4 --> b6["Validation-F1 thresholds frozen;<br/>test replay and row-keyed export"]
+    b5 --> b6
+  end
+  TA ~~~ TB2

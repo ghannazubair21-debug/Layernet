@@ -1,0 +1,21 @@
+sequenceDiagram
+  actor Analyst
+  participant Panel as AIChat panel
+  participant Route as /api/chat
+  participant Gemini as Gemini API
+  Analyst->>Panel: type question, send
+  Panel->>Route: POST messages (useChat transport)
+  alt API key not configured
+    Route-->>Panel: 503 "Gemini API key is not configured."
+    Panel-->>Analyst: error message
+  else key configured
+    Route->>Gemini: streamText(system prompt, messages)
+    loop streamed parts
+      Gemini-->>Route: text chunk
+      Route-->>Panel: UI message stream
+      Panel-->>Analyst: incremental answer
+    end
+  end
+  opt stop or regenerate
+    Analyst->>Panel: Stop / Retry
+  end

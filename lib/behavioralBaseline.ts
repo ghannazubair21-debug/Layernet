@@ -23,6 +23,18 @@ export function getPriorAccountTransactions(
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
 }
 
+/**
+ * Amounts are only comparable within one currency. Prior records in another currency, or with an unknown
+ * (legacy) currency, are excluded from amount aggregates; no exchange-rate conversion is performed.
+ */
+export function sameCurrencyAmounts(transaction: TransactionRecord, prior: readonly TransactionRecord[]): number[] {
+  if (!transaction.currency) return [];
+  return prior
+    .filter((item) => item.currency === transaction.currency)
+    .map((item) => item.amount)
+    .filter(Number.isFinite);
+}
+
 function mean(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -56,7 +68,7 @@ export function createBehavioralBaseline(
   history: readonly TransactionRecord[],
 ): BehavioralBaseline {
   const prior = getPriorAccountTransactions(transaction, history);
-  const amounts = prior.map((item) => item.amount).filter(Number.isFinite);
+  const amounts = sameCurrencyAmounts(transaction, prior);
   const averageAmount = mean(amounts);
   const times = prior.map((item) => item.timestamp);
 

@@ -1,0 +1,10 @@
+{
+  "ariaInvalid": "true",
+  "results": [
+    "TX-RPT-001: Risk: Medium / Priority score: 60/100",
+    "TX-RPT-002: Risk: High / Priority score: 80/100",
+    "TX-RPT-003: Risk: Low / Priority score: 8/100"
+  ],
+  "benchmark": "ok",
+  "benchmarkText": "INTELLIGENCE\n\nML Benchmark Replay\n\nScore genuine ULB/Worldline dataset rows with the saved trained models. Server-side inference only.\n\nULB benchmark inference — not live real-world transaction prediction.\n\nModels were trained and evaluated on the public ULB/Worldline credit-card dataset. Uploads must contain the published columns (Time, Amount, V1–V28; optional Class). Scores are uncalibrated ranking scores, not calibrated fraud probabilities. Use the Analysis page for the rules-based baseline on ordinary transactions.\n\nDATASET UPLOAD\nULB dataset CSV\nChoose a CSV file with genuine ULB rows\n\nRequired columns: Time, Amount, V1–V28. Optional Class enables evaluation on the uploaded rows. Maximum 5,000 rows / 2 MB.\n\nSelected: ulb-test-sample.csv\n\nUPLOADED DATASET RESULTS · SCOPE: ROWS IN YOUR CSV ONLY\n\nROWS SCORED\n\n2575\n\nLABELS UPLOADED\n\nYes\n\nMODEL AGREEMENT\n\n99.6%\n\nFLAGGED (SCORE ≥ THRESHOLD)\n\nxgboost\n64\nrandom_forest\n54\n\nxgboost\n\nversion 19963fe109752f91 · frozen threshold 0.5\n\nUncalibrated XGBoost ranking score from predict_proba; not a calibrated fraud probability.\n\nrandom_forest\n\nversion 94ed04c3e40f6079 · frozen threshold 0.5\n\nUncalibrated Random Forest positive-class score from predict_proba; not a calibrated fraud probability.\n\nEVALUATION ON UPLOADED ROWS\nMODEL\tPR-AUC\tAVERAGE PRECISION\tROC-AUC\tPRECISION\tRECALL\tF1\tTHRESHOLD\tTP / TN / FP / FN\nxgboost\t0.8797\t0.8799\t0.9790\t0.9219\t0.7867\t0.8489\t0.5\t59 / 2495 / 5 / 16\nrandom_forest\t0.9010\t0.9012\t0.9784\t1\t0.7200\t0.8372\t0.5\t54 /"
+}

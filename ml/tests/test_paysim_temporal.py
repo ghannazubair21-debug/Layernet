@@ -44,6 +44,7 @@ from layernet_ml.paysim_temporal import (
 def example(*, target_label: int = 1, target_step: int = 282) -> PaySimCausalExample:
     return PaySimCausalExample(
         entity_id="C-recipient-001",
+        source_row_ordinal=123,
         target_step=target_step,
         target_type="TRANSFER",
         target_amount=100.0,

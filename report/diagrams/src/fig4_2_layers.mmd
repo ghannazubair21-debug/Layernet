@@ -1,0 +1,28 @@
+flowchart TB
+  subgraph PL["Presentation"]
+    direction LR
+    P1["Pages: Dashboard, Analysis, History,<br/>Analytics, Benchmark, Health, Settings"]
+    P2["Shared components: AppShell,<br/>TransactionTable, charts, ScoreIndicator, AIChat"]
+  end
+  subgraph AL["Application logic"]
+    direction LR
+    A1["TransactionService"]
+    A2["fraudAnalysis<br/>(rules baseline v1)"]
+    A3["featureEngineering,<br/>behavioralBaseline"]
+    A4["transactionMetrics,<br/>benchmark client"]
+  end
+  subgraph DL["Storage and API"]
+    direction LR
+    D1["LocalStorageTransactionRepository<br/>(browser)"]
+    D2["/api/chat route<br/>(Node.js server)"]
+    D3["/api/benchmark route<br/>(Node.js server)"]
+  end
+  subgraph EX["External"]
+    direction LR
+    E1["Google Gemini API"]
+    E2["Python layernet_ml<br/>benchmark_replay"]
+  end
+  PL --> AL
+  AL --> DL
+  D2 --> E1
+  D3 --> E2
