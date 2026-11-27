@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import Page from "@/app/analysis/page";
+import { STORAGE_KEY } from "@/lib/transactionStorage";
 
 // Deterministic input: $10,000 Withdrawal on Mobile scores 40 (amount baseline)
 // + 15 (Withdrawal) + 5 (Mobile) = 60, plus 12 only when the UTC hour is 00-05.
@@ -76,5 +77,30 @@ describe("transaction analysis form", () => {
     expect(screen.getByText("Transaction type is Withdrawal: +15 heuristic points.")).toBeInTheDocument();
     expect(screen.getByText("Channel is Mobile: +5 heuristic points.")).toBeInTheDocument();
     expect(screen.getByText("Transaction analyzed and saved to History.")).toBeInTheDocument();
+  });
+
+  it("offers a labelled currency selector defaulting to PKR and saves the chosen currency with the amount", async () => {
+    const user = userEvent.setup();
+    render(<Page />);
+
+    const currency = screen.getByLabelText("Currency");
+    expect(currency).toHaveValue("PKR");
+    expect(currency).toHaveAccessibleDescription(/No conversion is applied/);
+
+    await user.type(screen.getByLabelText("Transaction ID"), "TX-CUR-UI");
+    await user.type(screen.getByLabelText("Amount"), "10000");
+    await user.selectOptions(currency, "USD");
+    await user.type(screen.getByLabelText("Location"), "Karachi, PK");
+    fireEvent.change(screen.getByLabelText("Timestamp", { exact: false }), { target: { value: TIMESTAMP } });
+    await user.click(screen.getByRole("button", { name: "Analyze Transaction" }));
+
+    expect(
+      await screen.findByText(
+        "Amount baseline: USD 10,000.00 contributes 40 points using a log-scaled heuristic on the nominal amount (not currency-adjusted).",
+      ),
+    ).toBeInTheDocument();
+    const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]") as Array<{ amount: number; currency?: string }>;
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ amount: 10000, currency: "USD" });
   });
 });

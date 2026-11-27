@@ -4,7 +4,8 @@ import React from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import RiskBadge from "./RiskBadge";
-import { cn, formatUsd } from "@/lib/utils";
+import { formatAmount } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 import { RULES_DECISION_HEADING, RULES_DECISION_LABELS } from "@/lib/transactionStatus";
 
 const formatter = new Intl.DateTimeFormat("en-US", {
@@ -93,27 +94,32 @@ export default function TransactionTable({
             {transactions.map((t) => (
               <tr
                 key={t.transactionId}
+                // Whole-row click is a pointer convenience only; keyboard and screen-reader users get a real
+                // button in the first cell, so the row keeps its table semantics (no role="button" on <tr>).
                 onClick={onRowClick ? () => onRowClick(t) : undefined}
-                onKeyDown={
-                  onRowClick
-                    ? (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onRowClick(t);
-                        }
-                      }
-                    : undefined
-                }
-                tabIndex={onRowClick ? 0 : undefined}
-                role={onRowClick ? "button" : undefined}
-                aria-label={onRowClick ? `View details for ${t.transactionId}` : undefined}
                 className={cn(
                   "border-t border-[var(--border)] transition-colors",
-                  onRowClick && "cursor-pointer hover:bg-[var(--rose-tint)]/50 focus-visible:bg-[var(--rose-tint)]/50",
+                  onRowClick && "cursor-pointer hover:bg-[var(--rose-tint)]/50 focus-within:bg-[var(--rose-tint)]/50",
                 )}
               >
-                <td className="ln-data px-4 py-3 font-medium text-[var(--text)]">{t.transactionId}</td>
-                <td className="ln-data px-4 py-3 text-[var(--text)]">{formatUsd(t.amount)}</td>
+                <td className="ln-data px-4 py-3 font-medium text-[var(--text)]">
+                  {onRowClick ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRowClick(t);
+                      }}
+                      aria-label={`View details for ${t.transactionId}`}
+                      className="rounded text-left underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+                    >
+                      {t.transactionId}
+                    </button>
+                  ) : (
+                    t.transactionId
+                  )}
+                </td>
+                <td className="ln-data px-4 py-3 text-[var(--text)]">{formatAmount(t.amount, t.currency)}</td>
                 {!compact && <td className="px-4 py-3 text-[var(--muted-text)]">{t.type}</td>}
                 <td className="px-4 py-3"><RiskBadge risk={t.risk} /></td>
                 <td className="ln-data px-4 py-3 text-[var(--text)]">{t.riskScore}</td>
@@ -141,7 +147,7 @@ export default function TransactionTable({
                 <RiskBadge risk={t.risk} />
               </div>
               <div className="mt-2 flex items-baseline justify-between gap-2">
-                <span className="ln-data text-lg font-semibold text-[var(--text)]">{formatUsd(t.amount)}</span>
+                <span className="ln-data text-lg font-semibold text-[var(--text)]">{formatAmount(t.amount, t.currency)}</span>
                 <span className="ln-data text-xs text-[var(--muted-text)]">score {t.riskScore}/100</span>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted-text)]">

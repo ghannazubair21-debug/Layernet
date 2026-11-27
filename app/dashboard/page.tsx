@@ -23,7 +23,7 @@ import { SkeletonRows } from "@/components/LoadingSkeleton";
 import { DonutChart, TrendChart } from "@/components/charts";
 import { summarizeTransactions } from "@/lib/transactionMetrics";
 import { useStoredTransactions } from "@/lib/useStoredTransactions";
-import { formatUsd } from "@/lib/utils";
+import { formatAmount } from "@/lib/currency";
 
 function shareHint(count: number, total: number) {
   if (total === 0) return "No saved records yet";
@@ -197,7 +197,7 @@ export default function Page() {
                   <div className="min-w-0 flex-1">
                     <p className="ln-data truncate text-sm font-medium text-[var(--text)]">{t.transactionId}</p>
                     <p className="truncate text-xs text-[var(--muted-text)]">
-                      {t.type} · {formatUsd(t.amount)} · {t.location ?? "location unavailable"}
+                      {t.type} · {formatAmount(t.amount, t.currency)} · {t.location ?? "location unavailable"}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">

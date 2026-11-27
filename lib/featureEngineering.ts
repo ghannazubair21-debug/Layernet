@@ -1,4 +1,4 @@
-import { createBehavioralBaseline, getPriorAccountTransactions } from "./behavioralBaseline";
+import { createBehavioralBaseline, getPriorAccountTransactions, sameCurrencyAmounts } from "./behavioralBaseline";
 import type { BehavioralBaseline, TransactionFeatures, TransactionRecord } from "./types";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -70,7 +70,10 @@ export function engineerTransactionFeatures(
       ? validVelocityValue(upstreamVelocity?.transactionsLast24Hours) ?? lastDay.length
       : null,
     amountLast24Hours: transaction.accountId
-      ? validVelocityValue(upstreamVelocity?.amountLast24Hours) ?? lastDay.reduce((sum, { item }) => sum + item.amount, 0)
+      ? validVelocityValue(upstreamVelocity?.amountLast24Hours) ??
+        (transaction.currency
+          ? sameCurrencyAmounts(transaction, lastDay.map(({ item }) => item)).reduce((sum, value) => sum + value, 0)
+          : null)
       : null,
     locationChanged: changedFromPrevious(transaction.location, prior, (item) => item.location),
     channelChanged: changedFromPrevious(transaction.channel, prior, (item) => item.channel),

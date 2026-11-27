@@ -73,18 +73,29 @@ export class BenchmarkRequestError extends Error {
   }
 }
 
+/** Thrown when the user cancels an in-flight benchmark request. */
+export class BenchmarkCancelledError extends Error {
+  constructor() {
+    super("Benchmark inference was cancelled.");
+    this.name = "BenchmarkCancelledError";
+  }
+}
+
 export const MAX_CSV_BYTES = 2_000_000;
 
 /** POST the CSV text to the server-side benchmark route; model files never reach the browser. */
-export async function runBenchmark(csv: string): Promise<BenchmarkSuccess> {
+export async function runBenchmark(csv: string, signal?: AbortSignal): Promise<BenchmarkSuccess> {
   let response: Response;
   try {
     response = await fetch("/api/benchmark", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ csv }),
+      signal,
     });
   } catch {
+    // Aborting the request also makes the server kill the Python inference process.
+    if (signal?.aborted) throw new BenchmarkCancelledError();
     throw new BenchmarkRequestError("internal", "Could not reach the benchmark service. Is the dev server running?");
   }
 
@@ -92,6 +103,7 @@ export async function runBenchmark(csv: string): Promise<BenchmarkSuccess> {
   try {
     payload = (await response.json()) as BenchmarkSuccess | BenchmarkFailure;
   } catch {
+    if (signal?.aborted) throw new BenchmarkCancelledError();
     throw new BenchmarkRequestError("internal", `Benchmark service returned an unreadable response (HTTP ${response.status}).`);
   }
 

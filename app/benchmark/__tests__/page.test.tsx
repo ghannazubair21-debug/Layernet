@@ -92,6 +92,66 @@ describe("BenchmarkPage", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("rejects empty files with a plain-language message without calling the API", async () => {
+    const user = userEvent.setup();
+    render(<BenchmarkPage />);
+    await user.upload(screen.getByLabelText("ULB dataset CSV"), new File([], "empty.csv", { type: "text/csv" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The selected file is empty.");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("disables the picker while inference runs and lets the same file be retried after a failure", async () => {
+    let resolveFirst: (response: Response) => void = () => {};
+    vi.mocked(fetch)
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(successPayload), { status: 200, headers: { "Content-Type": "application/json" } }),
+      );
+    const user = userEvent.setup();
+    render(<BenchmarkPage />);
+    const input = screen.getByLabelText("ULB dataset CSV");
+    const file = csvFile();
+
+    await user.upload(input, file);
+    expect(await screen.findByRole("status")).toHaveTextContent("Running server-side inference");
+    expect(input).toBeDisabled();
+    expect(input).toHaveValue("");
+
+    resolveFirst(
+      new Response(JSON.stringify({ ok: false, error_kind: "input", error: "Uploaded CSV is missing required ULB columns: V7" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("V7");
+    expect(input).toBeEnabled();
+
+    await user.upload(input, file);
+    expect(await screen.findByText("Rows scored")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels an in-flight run, aborts the request and allows a new run", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(fetch).mockImplementationOnce((_url, init) => {
+      capturedSignal = init?.signal ?? undefined;
+      return new Promise<Response>((_resolve, reject) => {
+        capturedSignal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      });
+    });
+    const user = userEvent.setup();
+    render(<BenchmarkPage />);
+    await user.upload(screen.getByLabelText("ULB dataset CSV"), csvFile());
+
+    await user.click(await screen.findByRole("button", { name: "Cancel inference" }));
+    expect(capturedSignal?.aborted).toBe(true);
+    expect(await screen.findByText(/Inference cancelled/)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel inference" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("ULB dataset CSV")).toBeEnabled();
+  });
+
   it("renders predictions, comparison and metrics after a successful upload", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(JSON.stringify(successPayload), { status: 200, headers: { "Content-Type": "application/json" } }),

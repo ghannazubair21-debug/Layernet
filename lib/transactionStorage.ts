@@ -1,3 +1,4 @@
+import { isCurrencyCode } from "./currency";
 import type { RiskLevel, Transaction, TransactionRepository } from "./types";
 
 export const STORAGE_KEY = "layernet-transactions";
@@ -42,6 +43,8 @@ function decodeTransaction(value: unknown): Transaction | null {
     status: value.status as Transaction["status"],
   };
 
+  // Keep a recorded, well-formed currency; legacy or malformed values decode as unknown (field absent).
+  if (isCurrencyCode(value.currency)) transaction.currency = value.currency;
   if (typeof value.accountId === "string" && value.accountId.trim()) transaction.accountId = value.accountId.trim();
   if (typeof value.location === "string") transaction.location = value.location;
   if (typeof channel === "string" && channel) transaction.channel = channel;

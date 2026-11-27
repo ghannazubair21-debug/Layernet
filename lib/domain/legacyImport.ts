@@ -4,11 +4,13 @@
  * local history is never uploaded automatically.
  *
  * Honesty rules: the local record never stored the scoring method/version,
- * scoring time, input payload, or currency, so those are marked unknown
- * rather than guessed. The local `status` was derived from the rules
+ * scoring time or input payload, so those are marked unknown rather than
+ * guessed. Records saved before currency capture have no currency; it maps
+ * to null (never assumed PKR or USD). A recorded ISO code is passed through. The local `status` was derived from the rules
  * decision (it never meant a human reviewed anything), so it maps to an
  * assessment decision and never to a case or disposition.
  */
+import { isCurrencyCode } from "../currency";
 import type { Transaction } from "../types";
 import {
   RiskAssessmentSchema,
@@ -53,7 +55,7 @@ export function mapLegacyLocalRecord(record: Transaction, context: LegacyImportC
     sourceTransactionId: record.transactionId,
     eventTime: record.timestamp,
     amount: record.amount,
-    currency: null,
+    currency: isCurrencyCode(record.currency) ? record.currency : null,
     type: record.type,
     accountRef: record.accountId?.trim() || null,
     channel: record.channel?.trim() || null,

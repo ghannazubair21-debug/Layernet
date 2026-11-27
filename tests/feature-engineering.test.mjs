@@ -16,6 +16,9 @@ function transaction(overrides = {}) {
     accountId: "account-a",
     timestamp: "2026-09-01T10:00:00.000Z",
     amount: 100,
+    // New Analysis-form records always carry a currency (default PKR). Legacy records without one are
+    // covered by the dedicated currency test below.
+    currency: "PKR",
     type: "Purchase",
     location: "Lahore",
     channel: "Web",
@@ -121,6 +124,23 @@ test("ignores invalid values in an otherwise valid upstream velocity snapshot", 
   assert.equal(features.transactionsLastHour, 0);
   assert.equal(features.transactionsLast24Hours, 0);
   assert.equal(features.amountLast24Hours, 0);
+});
+
+test("never mixes currencies or assumes one for legacy records in amount aggregates", () => {
+  const history = [
+    transaction({ transactionId: "tx-pkr", timestamp: "2026-09-01T09:00:00.000Z", amount: 300 }),
+    transaction({ transactionId: "tx-usd", timestamp: "2026-09-01T09:10:00.000Z", amount: 7, currency: "USD" }),
+    transaction({ transactionId: "tx-legacy", timestamp: "2026-09-01T09:20:00.000Z", amount: 999, currency: undefined }),
+  ];
+  const features = engineerTransactionFeatures(transaction(), history);
+  assert.equal(features.transactionsLast24Hours, 3);
+  assert.equal(features.amountLast24Hours, 300);
+  assert.equal(features.userBehavior.averageAmount, 300);
+
+  const legacyCurrent = engineerTransactionFeatures(transaction({ currency: undefined }), history);
+  assert.equal(legacyCurrent.transactionsLast24Hours, 3);
+  assert.equal(legacyCurrent.amountLast24Hours, null);
+  assert.equal(legacyCurrent.userBehavior.averageAmount, null);
 });
 
 test("rejects invalid timestamps and non-finite or negative amounts", () => {

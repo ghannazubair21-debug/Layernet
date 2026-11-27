@@ -263,6 +263,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  // Once opened, the assistant stays mounted (hidden when closed) so closing it — including an accidental
+  // Escape — does not discard the in-memory conversation or abort a reply that is still streaming.
+  const [assistantMounted, setAssistantMounted] = useState(false);
+  if (assistantOpen && !assistantMounted) setAssistantMounted(true);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
   const closeAssistant = useCallback(() => setAssistantOpen(false), []);
@@ -355,8 +359,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* AI assistant slide-over */}
-      {assistantOpen && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="AI investigation assistant">
+      {assistantMounted && (
+        <div
+          className="fixed inset-0 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-label="AI investigation assistant"
+          hidden={!assistantOpen}
+        >
           <button
             type="button"
             aria-label="Close AI assistant"

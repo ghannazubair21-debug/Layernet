@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import TransactionTable from "@/components/TransactionTable";
 import type { Transaction } from "@/lib/types";
 
@@ -28,5 +29,26 @@ describe("TransactionTable rules-decision labels", () => {
     expect(within(table).getByText("Clear")).toBeInTheDocument();
     expect(within(table).getByText("Flagged")).toBeInTheDocument();
     expect(screen.queryByText("Reviewed")).not.toBeInTheDocument();
+  });
+
+  it("keeps row semantics and exposes a keyboard-operable details button per record", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    render(<TransactionTable transactions={rows} onRowClick={onRowClick} />);
+    const table = screen.getByRole("table");
+
+    expect(within(table).getAllByRole("row")).toHaveLength(rows.length + 1);
+    const button = within(table).getByRole("button", { name: "View details for TX-REVIEW" });
+    button.focus();
+    await user.keyboard("{Enter}");
+    expect(onRowClick).toHaveBeenCalledTimes(1);
+    expect(onRowClick).toHaveBeenCalledWith(expect.objectContaining({ transactionId: "TX-REVIEW" }));
+  });
+
+  it("shows the recorded currency and UNKNOWN for legacy records without a currency", () => {
+    render(<TransactionTable transactions={[{ ...rows[0], currency: "PKR" }, { ...rows[1] }]} />);
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("PKR 250.00")).toBeInTheDocument();
+    expect(within(table).getByText("250.00 UNKNOWN")).toBeInTheDocument();
   });
 });

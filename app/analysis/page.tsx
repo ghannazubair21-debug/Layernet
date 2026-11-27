@@ -6,7 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import Panel from "@/components/Panel";
 import ScoreIndicator from "@/components/ScoreIndicator";
 import { transactionService } from "@/lib/transactionService";
-import { formatUsd } from "@/lib/utils";
+import { DEFAULT_CURRENCY, SELECTABLE_CURRENCIES, formatAmount, type SelectableCurrency } from "@/lib/currency";
 import type { AnalysisResult, Transaction, TransactionRecord } from "@/lib/types";
 
 function currentLocalDateTimeInput() {
@@ -65,6 +65,8 @@ export default function Page() {
   const [id, setId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [amount, setAmount] = useState<number | "">("");
+  const [currency, setCurrency] = useState<SelectableCurrency>(DEFAULT_CURRENCY);
+  const [resultCurrency, setResultCurrency] = useState<SelectableCurrency>(DEFAULT_CURRENCY);
   const [type, setType] = useState("Purchase");
   const [location, setLocation] = useState("");
   const [channel, setChannel] = useState("Web");
@@ -110,6 +112,7 @@ export default function Page() {
         transactionId: id.trim(),
         ...(accountId.trim() ? { accountId: accountId.trim() } : {}),
         amount: Number(amount),
+        currency,
         type,
         location: location.trim(),
         channel,
@@ -125,6 +128,7 @@ export default function Page() {
       };
 
       await transactionService.save(savedTransaction);
+      setResultCurrency(currency);
       setResult(res);
       setSaveMessage("Transaction analyzed and saved to History.");
       window.requestAnimationFrame(() => {
@@ -146,6 +150,7 @@ export default function Page() {
     setId("");
     setAccountId("");
     setAmount("");
+    setCurrency(DEFAULT_CURRENCY);
     setType("Purchase");
     setLocation("");
     setChannel("Web");
@@ -218,6 +223,29 @@ export default function Page() {
                     step="0.01"
                     className={`${inputClass} ln-data`}
                   />
+                </Field>
+
+                <Field
+                  id="tx-currency"
+                  label="Currency"
+                  hint="Stored with the amount. No conversion is applied; the score uses the nominal amount."
+                >
+                  <select
+                    id="tx-currency"
+                    value={currency}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if ((SELECTABLE_CURRENCIES as readonly string[]).includes(next)) setCurrency(next as SelectableCurrency);
+                    }}
+                    aria-describedby="hint-tx-currency"
+                    className={inputClass}
+                  >
+                    {SELECTABLE_CURRENCIES.map((code) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field id="tx-type" label="Transaction Type">
@@ -356,7 +384,7 @@ export default function Page() {
                     <ul className="mt-2 space-y-1 text-sm text-[var(--muted-text)]">
                       <li>Transactions in prior 1 hour: {result.features.transactionsLastHour ?? "Unavailable"}</li>
                       <li>Transactions in prior 24 hours: {result.features.transactionsLast24Hours ?? "Unavailable"}</li>
-                      <li>Prior 24-hour amount: {result.features.amountLast24Hours === null ? "Unavailable" : formatUsd(result.features.amountLast24Hours)}</li>
+                      <li>Prior 24-hour amount: {result.features.amountLast24Hours === null ? "Unavailable" : formatAmount(result.features.amountLast24Hours, resultCurrency)}</li>
                       <li>Amount z-score vs account history: {result.features.userBehavior.amountZScore === null ? "Unavailable" : result.features.userBehavior.amountZScore.toFixed(2)}</li>
                       <li>Location / channel / device change: {String(result.features.locationChanged)} / {String(result.features.channelChanged)} / {String(result.features.deviceChanged)}</li>
                     </ul>

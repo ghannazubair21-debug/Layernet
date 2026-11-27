@@ -12,7 +12,7 @@ vi.mock("ai", () => ({
 }));
 
 import { useChat } from "@ai-sdk/react";
-import AIChat from "@/components/AIChat";
+import AIChat, { describeChatError } from "@/components/AIChat";
 
 const mockedUseChat = vi.mocked(useChat);
 type ChatReturn = ReturnType<typeof useChat>;
@@ -212,5 +212,41 @@ describe("AIChat", () => {
     expect(sendMessage).toHaveBeenCalledWith({
       text: "What evidence should I verify?",
     });
+  });
+
+  it("keeps the textarea focusable while generating but does not send a second message", async () => {
+    const user = userEvent.setup();
+    const sendMessage = vi.fn();
+    mockedUseChat.mockReturnValue(
+      makeChatReturn({ status: "streaming", sendMessage, messages: [userMsg("First"), assistantMsg("Partial")] }) as unknown as ChatReturn,
+    );
+    render(<AIChat />);
+
+    const input = screen.getByLabelText("Message the AI investigation assistant");
+    expect(input).toBeEnabled();
+    await user.type(input, "Follow-up{Enter}");
+    expect(input).toHaveFocus();
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(screen.getByRole("log", { name: /Conversation with the AI investigation assistant/ })).toBeInTheDocument();
+  });
+
+  it("announces the server's error message so the analyst knows whether retrying helps", () => {
+    mockedUseChat.mockReturnValue(
+      makeChatReturn({ error: new Error(JSON.stringify({ error: "Chat service is busy. Retry shortly." })) }) as unknown as ChatReturn,
+    );
+    render(<AIChat />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Chat service is busy. Retry shortly.");
+  });
+});
+
+describe("describeChatError", () => {
+  it("falls back to generic text for non-JSON or empty errors", () => {
+    expect(describeChatError(undefined)).toMatch(/could not generate a response/);
+    expect(describeChatError(new Error("Failed to fetch"))).toMatch(/could not generate a response/);
+    expect(describeChatError(new Error(JSON.stringify({ error: "   " })))).toMatch(/could not generate a response/);
+  });
+
+  it("uses the route's error string when present", () => {
+    expect(describeChatError(new Error('{"error":"Gemini API key is not configured."}'))).toBe("Gemini API key is not configured.");
   });
 });

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlaskConical, Upload } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Panel from "@/components/Panel";
 import {
+  BenchmarkCancelledError,
   MAX_CSV_BYTES,
   runBenchmark,
   type BenchmarkMetrics,
@@ -80,9 +81,17 @@ export default function BenchmarkPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<BenchmarkSuccess | null>(null);
   const [fileName, setFileName] = useState("");
+  const [notice, setNotice] = useState("");
+  const controllerRef = useRef<AbortController | null>(null);
+
+  // Abort an in-flight request if the user navigates away; the server then stops the Python process.
+  useEffect(() => () => controllerRef.current?.abort(), []);
+
+  const cancel = () => controllerRef.current?.abort();
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
+    setNotice("");
     setError("");
     setResult(null);
     setFileName(file.name);
@@ -94,13 +103,24 @@ export default function BenchmarkPage() {
       setError(`File exceeds the ${MAX_CSV_BYTES} byte upload limit. Upload a smaller slice of the dataset.`);
       return;
     }
+    if (file.size === 0) {
+      setError("The selected file is empty. Choose a CSV that contains a header row and ULB data rows.");
+      return;
+    }
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setLoading(true);
     try {
       const csv = await readFileText(file);
-      setResult(await runBenchmark(csv));
+      setResult(await runBenchmark(csv, controller.signal));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Benchmark inference failed.");
+      if (cause instanceof BenchmarkCancelledError) {
+        setNotice("Inference cancelled. No results were produced; choose a file to run again.");
+      } else {
+        setError(cause instanceof Error ? cause.message : "Benchmark inference failed.");
+      }
     } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
       setLoading(false);
     }
   };
@@ -128,15 +148,27 @@ export default function BenchmarkPage() {
       <Panel title="Dataset upload" className="ln-enter">
         <label className="block">
           <span className="text-sm font-medium text-[var(--text)]">ULB dataset CSV</span>
-          <span className="mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--rose-soft)] bg-[var(--surface-strong)]/60 px-4 py-8 transition-colors hover:border-[var(--primary)] hover:bg-[var(--rose-tint)]/60">
+          <span
+            className={`mt-2 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--rose-soft)] bg-[var(--surface-strong)]/60 px-4 py-8 transition-colors focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--surface)] ${
+              loading ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-[var(--primary)] hover:bg-[var(--rose-tint)]/60"
+            }`}
+          >
             <Upload aria-hidden="true" className="size-6 text-[var(--primary)]" />
-            <span className="text-sm text-[var(--muted-text)]">Choose a CSV file with genuine ULB rows</span>
+            <span className="text-sm text-[var(--muted-text)]">
+              {loading ? "Inference in progress — wait for it to finish" : "Choose a CSV file with genuine ULB rows"}
+            </span>
             <input
               type="file"
               accept=".csv,text/csv"
               aria-label="ULB dataset CSV"
               className="sr-only"
-              onChange={(event) => void handleFile(event.target.files?.[0])}
+              disabled={loading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                // Reset so choosing the same file again (e.g. after fixing it) fires a new change event.
+                event.target.value = "";
+                void handleFile(file);
+              }}
             />
           </span>
         </label>
@@ -145,11 +177,21 @@ export default function BenchmarkPage() {
         </p>
         {fileName ? <p className="ln-data mt-2 text-sm text-[var(--text)]">Selected: {fileName}</p> : null}
         {loading ? (
-          <p className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-text)]" role="status">
-            <span aria-hidden="true" className="layernet-spin inline-block size-3.5 rounded-full border-2 border-[var(--rose-soft)] border-t-[var(--primary)]" />
-            Running server-side inference…
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p className="flex items-center gap-2 text-sm text-[var(--muted-text)]" role="status">
+              <span aria-hidden="true" className="layernet-spin inline-block size-3.5 rounded-full border-2 border-[var(--rose-soft)] border-t-[var(--primary)]" />
+              Running server-side inference…
+            </p>
+            <button
+              type="button"
+              onClick={cancel}
+              className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text)] hover:bg-[var(--rose-tint)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+            >
+              Cancel inference
+            </button>
+          </div>
         ) : null}
+        {notice ? <p role="status" className="mt-2 text-sm text-[var(--muted-text)]">{notice}</p> : null}
         {error ? <p role="alert" className="mt-2 rounded-lg bg-[var(--danger-tint)] px-3 py-2 text-sm text-[var(--danger)]">{error}</p> : null}
       </Panel>
 

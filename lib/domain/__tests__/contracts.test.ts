@@ -281,6 +281,13 @@ describe("mapLegacyLocalRecord", () => {
     expect(decisions).toEqual(["Clear", "Review", "Block"]);
   });
 
+  it("passes a recorded currency through and never assumes one for legacy records", () => {
+    const withCurrency = mapLegacyLocalRecord({ ...local, currency: "PKR" }, context);
+    expect(withCurrency.ok && withCurrency.fact.currency).toBe("PKR");
+    const malformed = mapLegacyLocalRecord({ ...local, currency: "rupees" }, context);
+    expect(malformed.ok && malformed.fact.currency).toBeNull();
+  });
+
   it("reports records that violate the contract instead of importing them", () => {
     const result = mapLegacyLocalRecord({ ...local, riskScore: 140 }, context);
     expect(result).toMatchObject({ ok: false, sourceTransactionId: "TX-LEGACY-1" });

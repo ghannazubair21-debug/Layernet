@@ -11,7 +11,7 @@ import TransactionTable, { type TransactionSort, type TransactionSortKey } from 
 import { SkeletonRows } from "@/components/LoadingSkeleton";
 import { useStoredTransactions } from "@/lib/useStoredTransactions";
 import type { Transaction } from "@/lib/types";
-import { formatUsd } from "@/lib/utils";
+import { formatAmount } from "@/lib/currency";
 import { RULES_DECISION_HEADING, RULES_DECISION_LABELS } from "@/lib/transactionStatus";
 
 const detailFormatter = new Intl.DateTimeFormat("en-US", {
@@ -94,7 +94,7 @@ function TransactionDetail({ transaction, onClose }: { transaction: Transaction;
           </div>
 
           <dl>
-            <DetailRow label="Amount" value={formatUsd(transaction.amount)} />
+            <DetailRow label="Amount" value={formatAmount(transaction.amount, transaction.currency)} />
             <DetailRow label="Type" value={transaction.type} />
             <DetailRow label={RULES_DECISION_HEADING} value={RULES_DECISION_LABELS[transaction.status]} />
             <DetailRow label="Timestamp" value={`${detailFormatter.format(new Date(transaction.timestamp))} UTC`} />
@@ -119,7 +119,7 @@ function TransactionDetail({ transaction, onClose }: { transaction: Transaction;
                   <DetailRow label="Tx last 24h" value={String(transaction.velocity.transactionsLast24Hours)} />
                 ) : null}
                 {transaction.velocity.amountLast24Hours !== undefined ? (
-                  <DetailRow label="Amount last 24h" value={formatUsd(transaction.velocity.amountLast24Hours)} />
+                  <DetailRow label="Amount last 24h" value={formatAmount(transaction.velocity.amountLast24Hours, transaction.currency)} />
                 ) : null}
               </dl>
             </div>
