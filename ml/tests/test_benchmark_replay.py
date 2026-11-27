@@ -143,6 +143,44 @@ class BenchmarkValidationTests(unittest.TestCase):
         self.assertEqual(len(parsed.columns), len(columns))
         self.assertEqual(len(parsed), 1)
 
+    def test_record_with_extra_field_is_rejected_instead_of_shifted(self) -> None:
+        # pandas would otherwise use the first value as an implicit index and
+        # silently shift every feature one column left.
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        values = [str(index + 1) for index in range(len(columns))]
+        text = ",".join(columns) + "\n" + ",".join(values) + ",777\n"
+        with patch("layernet_ml.benchmark_replay.pd.read_csv") as read_csv:
+            with self.assertRaisesRegex(BenchmarkInputError, "record 2 has 31 fields; the header has 30"):
+                parse_benchmark_csv(text)
+            read_csv.assert_not_called()
+
+    def test_record_with_missing_field_is_rejected(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        values = ["0"] * (len(columns) - 1)
+        text = ",".join(columns) + "\n" + ",".join(values) + "\n"
+        with self.assertRaisesRegex(BenchmarkInputError, "has 29 fields; the header has 30"):
+            parse_benchmark_csv(text)
+
+    def test_blank_lines_and_crlf_do_not_count_as_ragged_records(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        row = ",".join("0" for _ in columns)
+        text = ",".join(columns) + "\r\n" + row + "\r\n\r\n" + row + "\n\n"
+
+        parsed = parse_benchmark_csv(text)
+
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(list(parsed.columns), columns)
+
+    def test_quoted_newline_does_not_end_a_record(self) -> None:
+        columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
+        values = ["0"] * len(columns)
+        values[-1] = '"0\n"'
+        text = ",".join(columns) + "\n" + ",".join(values) + "\n"
+
+        parsed = parse_benchmark_csv(text)
+
+        self.assertEqual(len(parsed), 1)
+
     def test_csv_row_cap_stops_parsing_at_one_row_over_limit(self) -> None:
         columns = ["Time", "Amount", *(f"V{index}" for index in range(1, 29))]
         row = ",".join("0" for _ in columns)

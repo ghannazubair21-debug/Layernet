@@ -46,7 +46,13 @@ describe("Settings local transaction storage", () => {
 
     render(<SettingsPage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Existing local data was left unchanged.");
-    expect(screen.getByText("Unavailable analyzed records are stored in this browser only.")).toBeInTheDocument();
+    // The count is rendered in its own <span> inside a longer paragraph, so match the paragraph's full text.
+    expect(
+      screen.getByText((_, element) =>
+        element?.tagName === "P" &&
+        (element.textContent ?? "").startsWith("Unavailable analyzed records are stored in this browser only."),
+      ),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Clear local vault" }));
     expect(screen.getByText("The saved records could not be read. Delete the local transaction store? This cannot be undone.")).toBeInTheDocument();

@@ -68,12 +68,31 @@ class ModelAvailabilityError(RuntimeError):
     """A saved artifact is missing, unreadable, or fails its integrity checks."""
 
 
-def _validate_csv_column_width(text: str) -> None:
-    """Reject wide records before pandas can allocate a very large row."""
+def _validate_csv_column_width(text: str, expected_fields: int | None = None) -> None:
+    """Reject wide or ragged records before pandas can parse them.
+
+    Wide records are rejected before pandas allocates a very large row. When
+    ``expected_fields`` is given, every non-blank record must have exactly that
+    many fields: pandas otherwise treats a row with one extra value as having an
+    implicit index column and silently shifts every value one column left.
+    """
     fields_in_record = 1
+    record_has_content = False
+    record_number = 0
     at_field_start = True
     in_quoted_field = False
     index = 0
+
+    def finish_record() -> None:
+        nonlocal record_number
+        if not record_has_content:
+            return  # blank line (or the second half of CRLF); pandas skips these
+        record_number += 1
+        if expected_fields is not None and fields_in_record != expected_fields:
+            raise BenchmarkInputError(
+                f"Uploaded CSV record {record_number} has {fields_in_record} fields; "
+                f"the header has {expected_fields}."
+            )
 
     while index < len(text):
         character = text[index]
@@ -86,6 +105,15 @@ def _validate_csv_column_width(text: str) -> None:
             index += 1
             continue
 
+        if character in "\r\n":
+            finish_record()
+            fields_in_record = 1
+            record_has_content = False
+            at_field_start = True
+            index += 1
+            continue
+
+        record_has_content = True
         if character == '"' and at_field_start:
             in_quoted_field = True
         elif character == ",":
@@ -95,12 +123,11 @@ def _validate_csv_column_width(text: str) -> None:
                     f"Uploaded CSV contains a record with more than {MAX_COLUMNS} columns."
                 )
             at_field_start = True
-        elif character in "\r\n":
-            fields_in_record = 1
-            at_field_start = True
         else:
             at_field_start = False
         index += 1
+
+    finish_record()
 
 
 def parse_benchmark_csv(text: str) -> pd.DataFrame:
@@ -129,7 +156,7 @@ def parse_benchmark_csv(text: str) -> pd.DataFrame:
         raise BenchmarkInputError(
             f"Uploaded CSV has more than {MAX_COLUMNS} columns; the benchmark replay limit is {MAX_COLUMNS} columns."
         )
-    _validate_csv_column_width(text)
+    _validate_csv_column_width(text, expected_fields=len(header))
 
     try:
         # Read one row beyond the accepted maximum so validation can reject an
