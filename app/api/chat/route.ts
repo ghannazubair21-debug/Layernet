@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { google, type GoogleLanguageModelOptions } from "@ai-sdk/google";
 import {
   consumeStream,
   convertToModelMessages,
@@ -77,6 +77,12 @@ export async function POST(request: Request) {
       temperature: GEMINI_MODEL_SETTINGS.temperature,
       topP: GEMINI_MODEL_SETTINGS.topP,
       maxOutputTokens: GEMINI_MODEL_SETTINGS.maxOutputTokens,
+      maxRetries: GEMINI_MODEL_SETTINGS.maxRetries,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingBudget: GEMINI_MODEL_SETTINGS.thinkingBudget },
+        } satisfies GoogleLanguageModelOptions,
+      },
       onEnd: cleanup,
       onAbort: cleanup,
       onError: cleanup,

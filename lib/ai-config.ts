@@ -7,6 +7,14 @@ export const GEMINI_MODEL_SETTINGS = {
   temperature: 0.35,
   topP: 0.9,
   maxOutputTokens: 600,
+  /**
+   * Gemini 2.5 Flash "thinks" by default. Thinking adds seconds of latency before the first token
+   * (a one-word reply measured ~16 s) and its tokens count against maxOutputTokens, which can
+   * truncate answers. Short analyst explanations do not need it, so the budget is 0 (disabled).
+   */
+  thinkingBudget: 0,
+  /** One retry on transient provider errors; more would not fit inside the route's 25 s timeout. */
+  maxRetries: 1,
 } as const;
 
 export const AI_SYSTEM_PROMPT = `You are an AI investigation assistant for the LayerNet research prototype.

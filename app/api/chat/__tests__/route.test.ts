@@ -101,6 +101,20 @@ describe("/api/chat", () => {
     expect(streamText).toHaveBeenCalledTimes(1);
   });
 
+  it("disables Gemini thinking and bounds retries so replies start quickly and fit the output budget", async () => {
+    await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: [{ id: "1", role: "user", parts: [{ type: "text", text: "hello" }] }] }),
+    }));
+
+    expect(streamText).toHaveBeenCalledWith(expect.objectContaining({
+      maxOutputTokens: 600,
+      maxRetries: 1,
+      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+    }));
+  });
+
   it("limits concurrent provider requests and releases a slot when streaming ends", async () => {
     vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
     vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
