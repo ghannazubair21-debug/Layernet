@@ -1,0 +1,3 @@
+# Research records are hash-pinned (SHA-256 of exact bytes). Store and check them out byte-for-byte:
+# no line-ending conversion, or the recorded hashes stop matching on other platforms.
+ml/reports/** -text
