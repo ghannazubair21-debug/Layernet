@@ -33,7 +33,7 @@ describe("formatAmount", () => {
   });
 });
 
-describe("rules baseline v1 with currency", () => {
+describe("rules baseline v1.1 with currency", () => {
   it("keeps the score identical for the same nominal amount regardless of currency (formula unchanged)", () => {
     const legacy = analyzeTransaction(base);
     const pkr = analyzeTransaction({ ...base, currency: "PKR" });
@@ -41,7 +41,8 @@ describe("rules baseline v1 with currency", () => {
     // 10,000 → floor(10·log10(10000)) = 40, +15 Withdrawal, +5 Mobile = 60 (12:00 UTC adds nothing).
     expect([legacy.riskScore, pkr.riskScore, usd.riskScore]).toEqual([60, 60, 60]);
     expect(pkr.decision).toBe("Review");
-    expect(pkr.method).toBe("LayerNet rules baseline v1");
+    expect(pkr.risk).toBe("Medium");
+    expect(pkr.method).toBe("LayerNet rules baseline v1.1");
   });
 
   it("names the original currency in the amount factor and discloses that it is not currency-adjusted", () => {

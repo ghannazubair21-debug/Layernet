@@ -4,7 +4,7 @@ LayerNet is a Next.js research prototype for transaction analysis and fraud inve
 
 ## Current capabilities and limits
 
-- The active scoring method is `LayerNet rules baseline v1`. Its uncalibrated 0–100 priority score uses amount, selected transaction types, selected channels, and UTC hour. It is not a fraud probability or trained-model prediction.
+- The active scoring method is `LayerNet rules baseline v1.1`. Its uncalibrated 0–100 priority score uses amount, selected transaction types, selected channels, and UTC hour. It is not a fraud probability or trained-model prediction. The score maps to a decision (Clear < 60, Review 60–84, Block ≥ 85), and the risk level follows the decision (Low / Medium / High). v1.1 differs from v1 only in that mapping: v1 used separate risk bands (Medium ≥ 40, High ≥ 80), so a transaction could be "Medium" risk with a "Clear" decision. Records saved under v1 keep their original labels.
 - Behavioral features are calculated only when an account ID and earlier saved records are available. Those features do not currently affect the score.
 - Transaction history and analytics are read from this browser's local storage. They are not a durable shared database.
 - No trained XGBoost, Random Forest, Isolation Forest, or Transformer inference adapter is connected to the application.

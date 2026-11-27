@@ -1,7 +1,9 @@
 import { formatAmount } from "./currency";
-import type { AnalysisResult, RiskLevel, TransactionRecord } from "./types";
+import { decisionForScore, riskForScore } from "./riskBands";
+import type { AnalysisResult, TransactionRecord } from "./types";
 
-const ANALYSIS_METHOD = "LayerNet rules baseline v1";
+// v1.1: same score formula and decision thresholds as v1; the risk level now follows the decision (riskBands.ts).
+const ANALYSIS_METHOD = "LayerNet rules baseline v1.1";
 
 export function analyzeTransaction(
   tx: Pick<TransactionRecord, "transactionId" | "amount" | "currency" | "type" | "location" | "channel" | "timestamp">,
@@ -46,8 +48,8 @@ export function analyzeTransaction(
   // Cap
   score = Math.max(0, Math.min(100, score));
 
-  const risk = score >= 80 ? "High" : score >= 40 ? "Medium" : "Low";
-  const decision = score >= 85 ? "Block" : score >= 60 ? "Review" : "Clear";
+  const risk = riskForScore(score);
+  const decision = decisionForScore(score);
 
   const recommendation = decision === "Block" ? "Block and escalate to investigation" : decision === "Review" ? "Mark for manual review" : "Clear the transaction";
 
@@ -56,8 +58,8 @@ export function analyzeTransaction(
   return {
     transactionId: tx.transactionId,
     riskScore: score,
-    risk: risk as RiskLevel,
-    decision: decision as AnalysisResult["decision"],
+    risk,
+    decision,
     factors,
     recommendation,
     explanation,
