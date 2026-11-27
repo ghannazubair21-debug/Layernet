@@ -5,7 +5,7 @@ import { APICallError, RetryError, type UIMessageChunk } from "ai";
  * URLs or key fragments, so only the HTTP status class is inspected and nothing is passed through.
  */
 export const CHAT_ERROR_MESSAGES = {
-  timeout: "The assistant took longer than 25 seconds to respond. Retry, or ask a shorter question.",
+  timeout: "Gemini did not respond in time. Retry, or ask a shorter question.",
   rateLimited: "Gemini's rate limit or quota has been reached. Wait a minute, then retry.",
   unauthorized: "Gemini rejected the server's API key. An administrator needs to check the configuration.",
   rejected: "Gemini could not process this request. Rephrase the question or start a new conversation.",
@@ -34,18 +34,28 @@ export function encodeStreamError(message: string): string {
 }
 
 /**
- * streamText reports the route's own timeout as an "abort" chunk, which the chat client treats like the
- * user pressing Stop: the question silently gets no reply. When the route timed out, send the timeout
- * message as an error instead. User-initiated cancellations stay as aborts.
+ * streamText reports the route's own timeout and its first-chunk (stall) timeout as an "abort" chunk,
+ * which the chat client treats like the user pressing Stop: the question silently gets no reply.
+ * Unless the user cancelled, send the timeout message as an error instead.
  */
-export function surfaceTimeoutAborts(isTimedOut: () => boolean): TransformStream<UIMessageChunk, UIMessageChunk> {
+export function surfaceTimeoutAborts(isUserCancel: () => boolean): TransformStream<UIMessageChunk, UIMessageChunk> {
   return new TransformStream({
     transform(chunk, controller) {
-      if (chunk.type === "abort" && isTimedOut()) {
+      if (chunk.type === "abort" && !isUserCancel()) {
         controller.enqueue({ type: "error", errorText: encodeStreamError(CHAT_ERROR_MESSAGES.timeout) });
         return;
       }
       controller.enqueue(chunk);
+    },
+  });
+}
+
+/** A one-chunk UI stream carrying a fixed error, for failures that happen before a model stream exists. */
+export function errorChunkStream(message: string): ReadableStream<UIMessageChunk> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue({ type: "error", errorText: encodeStreamError(message) });
+      controller.close();
     },
   });
 }

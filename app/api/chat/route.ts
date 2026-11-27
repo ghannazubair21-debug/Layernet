@@ -5,6 +5,7 @@ import {
   createUIMessageStreamResponse,
   streamText,
   toUIMessageStream,
+  type UIMessageChunk,
 } from "ai";
 import { parseChatMessages } from "@/lib/server/chatRequest";
 import { acquireChatSlot } from "@/lib/server/chatSlots";
@@ -13,8 +14,10 @@ import {
   CHAT_ERROR_MESSAGES,
   describeProviderError,
   encodeStreamError,
+  errorChunkStream,
   surfaceTimeoutAborts,
 } from "@/lib/server/chatErrors";
+import { withStallRetry } from "@/lib/server/chatStream";
 import { checkRequestOrigin } from "@/lib/server/requestGuard";
 import type { ChatMessageMetadata } from "@/lib/chatOutcome";
 import {
@@ -67,7 +70,10 @@ export async function POST(request: Request) {
     abortController.abort();
   }, CHAT_TIMEOUT_MS);
   const abortFromRequest = () => abortController.abort(request.signal.reason);
+  let cleanedUp = false;
   const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
     clearTimeout(timeout);
     request.signal.removeEventListener("abort", abortFromRequest);
     releaseSlot();
@@ -80,33 +86,47 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = streamText({
-      model: google(GEMINI_MODEL_ID),
-      system: AI_SYSTEM_PROMPT,
-      messages: await convertToModelMessages(parsedMessages.messages),
-      abortSignal: abortController.signal,
-      temperature: GEMINI_MODEL_SETTINGS.temperature,
-      topP: GEMINI_MODEL_SETTINGS.topP,
-      maxOutputTokens: GEMINI_MODEL_SETTINGS.maxOutputTokens,
-      maxRetries: GEMINI_MODEL_SETTINGS.maxRetries,
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingBudget: GEMINI_MODEL_SETTINGS.thinkingBudget },
-        } satisfies GoogleLanguageModelOptions,
-      },
-      onEnd: cleanup,
-      onAbort: cleanup,
-      onError: cleanup,
-    });
+    const modelMessages = await convertToModelMessages(parsedMessages.messages);
+    const startAttempt = (): ReadableStream<UIMessageChunk> => {
+      try {
+        const result = streamText({
+          model: google(GEMINI_MODEL_ID),
+          system: AI_SYSTEM_PROMPT,
+          messages: modelMessages,
+          abortSignal: abortController.signal,
+          // A request with no content after this long is treated as stalled and restarted once.
+          timeout: { firstChunkMs: GEMINI_MODEL_SETTINGS.firstChunkTimeoutMs },
+          temperature: GEMINI_MODEL_SETTINGS.temperature,
+          topP: GEMINI_MODEL_SETTINGS.topP,
+          maxOutputTokens: GEMINI_MODEL_SETTINGS.maxOutputTokens,
+          maxRetries: GEMINI_MODEL_SETTINGS.maxRetries,
+          providerOptions: {
+            google: {
+              thinkingConfig: { thinkingBudget: GEMINI_MODEL_SETTINGS.thinkingBudget },
+            } satisfies GoogleLanguageModelOptions,
+          },
+        });
+        return toUIMessageStream({
+          stream: result.stream,
+          onError: (error) => encodeStreamError(describeProviderError(error, { timedOut })),
+          // The finish reason lets the client explain safety blocks and length-truncated replies.
+          messageMetadata: ({ part }): ChatMessageMetadata | undefined =>
+            part.type === "finish" ? { finishReason: part.finishReason } : undefined,
+        });
+      } catch {
+        return errorChunkStream(CHAT_ERROR_MESSAGES.generic);
+      }
+    };
 
+    const userCancelled = () => request.signal.aborted;
     return createUIMessageStreamResponse({
-      stream: toUIMessageStream({
-        stream: result.stream,
-        onError: (error) => encodeStreamError(describeProviderError(error, { timedOut })),
-        // The finish reason lets the client explain safety blocks and length-truncated replies.
-        messageMetadata: ({ part }): ChatMessageMetadata | undefined =>
-          part.type === "finish" ? { finishReason: part.finishReason } : undefined,
-      }).pipeThrough(surfaceTimeoutAborts(() => timedOut)),
+      stream: withStallRetry({
+        startAttempt,
+        maxAttempts: GEMINI_MODEL_SETTINGS.stallAttempts,
+        canRetry: () => !timedOut && !userCancelled(),
+        // The chat slot and route timer are released once, when the combined stream ends.
+        onDone: cleanup,
+      }).pipeThrough(surfaceTimeoutAborts(userCancelled)),
       consumeSseStream: consumeStream,
     });
   } catch {

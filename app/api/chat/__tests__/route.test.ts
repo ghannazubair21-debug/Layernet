@@ -1,21 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const responseStreams = vi.hoisted(() => [] as ReadableStream[]);
+
 vi.mock("@ai-sdk/google", () => ({ google: vi.fn(() => "test-model") }));
 vi.mock("ai", async (importOriginal) => ({
   // Real error classes are kept so provider failures can be classified (lib/server/chatErrors.ts).
   ...(await importOriginal<typeof import("ai")>()),
   consumeStream: vi.fn(),
   convertToModelMessages: vi.fn(async (messages: unknown) => messages),
-  createUIMessageStreamResponse: vi.fn(() => new Response("streamed")),
-  streamText: vi.fn((options: { onEnd?: (event: unknown) => void }) => {
-    options.onEnd?.({});
-    return { stream: new ReadableStream() };
+  // The route's combined stream is captured so tests can end it (or cancel it like a departing client).
+  createUIMessageStreamResponse: vi.fn(({ stream }: { stream: ReadableStream }) => {
+    responseStreams.push(stream);
+    return new Response("streamed");
   }),
-  toUIMessageStream: vi.fn(() => new ReadableStream()),
+  streamText: vi.fn(() => ({ stream: new ReadableStream() })),
+  // Default: a model stream that finishes at once, so the chat slot is released.
+  toUIMessageStream: vi.fn(() => new ReadableStream({
+    start(controller) {
+      controller.enqueue({ type: "start" });
+      controller.enqueue({ type: "finish", finishReason: "stop" });
+      controller.close();
+    },
+  })),
 }));
 
 import { APICallError, convertToModelMessages, streamText, toUIMessageStream } from "ai";
 import { GET, POST } from "@/app/api/chat/route";
+
+/** A model stream that never ends, holding the chat slot until the response stream is cancelled. */
+const neverEnding = () => new ReadableStream() as never;
+const releaseLastResponse = () => responseStreams.at(-1)?.cancel("test cleanup");
 
 describe("/api/chat", () => {
   const original = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -23,6 +37,7 @@ describe("/api/chat", () => {
   beforeEach(() => {
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = "test-key-value";
     vi.clearAllMocks();
+    responseStreams.length = 0;
   });
 
   afterEach(() => {
@@ -113,13 +128,14 @@ describe("/api/chat", () => {
     expect(streamText).toHaveBeenCalledWith(expect.objectContaining({
       maxOutputTokens: 600,
       maxRetries: 1,
+      timeout: { firstChunkMs: 10_000 },
       providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
     }));
   });
 
   it("encodes mid-stream provider failures as fixed JSON messages and reports the finish reason", async () => {
     vi.useFakeTimers();
-    vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
+    vi.mocked(toUIMessageStream).mockImplementationOnce(neverEnding);
     await POST(new Request("http://localhost/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -144,14 +160,12 @@ describe("/api/chat", () => {
     expect(uiOptions.messageMetadata({ part: { type: "text-delta" } })).toBeUndefined();
 
     vi.advanceTimersByTime(25_000);
-    expect(JSON.parse(uiOptions.onError(new Error("aborted")))).toEqual({ error: expect.stringContaining("25 seconds") });
-    // Release the chat slot the never-ending stub stream would otherwise hold.
-    (vi.mocked(streamText).mock.calls.at(-1)?.[0] as unknown as { onAbort?: (event: unknown) => void }).onAbort?.({});
+    expect(JSON.parse(uiOptions.onError(new Error("aborted")))).toEqual({ error: expect.stringContaining("did not respond in time") });
+    await releaseLastResponse();
   });
 
   it("limits concurrent provider requests and releases a slot when streaming ends", async () => {
-    vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
-    vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
+    vi.mocked(toUIMessageStream).mockImplementationOnce(neverEnding).mockImplementationOnce(neverEnding);
     const body = JSON.stringify({ messages: [{ id: "1", role: "user", parts: [{ type: "text", text: "hello" }] }] });
     const request = () => new Request("http://localhost/api/chat", {
       method: "POST",
@@ -165,16 +179,14 @@ describe("/api/chat", () => {
     expect(busy.status).toBe(429);
     expect(busy.headers.get("Retry-After")).toBe("5");
 
-    const firstOptions = vi.mocked(streamText).mock.calls[0]?.[0] as unknown as {
-      onEnd?: (event: unknown) => void;
-    };
-    firstOptions.onEnd?.({});
+    await responseStreams[0].cancel("client left");
 
     expect((await POST(request())).status).toBe(200);
+    await responseStreams[1].cancel("client left");
   });
 
   it("propagates client cancellation to the model request", async () => {
-    vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
+    vi.mocked(toUIMessageStream).mockImplementationOnce(neverEnding);
     const requestAbort = new AbortController();
     const request = new Request("http://localhost/api/chat", {
       method: "POST",
@@ -193,12 +205,12 @@ describe("/api/chat", () => {
 
     expect(response.status).toBe(200);
     expect(options.abortSignal?.aborted).toBe(true);
-    options.onAbort?.({});
+    await releaseLastResponse();
   });
 
   it("aborts model generation at the route timeout", async () => {
     vi.useFakeTimers();
-    vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
+    vi.mocked(toUIMessageStream).mockImplementationOnce(neverEnding);
     await POST(new Request("http://localhost/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -212,7 +224,7 @@ describe("/api/chat", () => {
     await vi.advanceTimersByTimeAsync(25_000);
 
     expect(options.abortSignal?.aborted).toBe(true);
-    options.onAbort?.({});
+    await releaseLastResponse();
   });
 
   it("rejects cross-site and foreign-origin requests before reading the body or calling Gemini", async () => {

@@ -47,7 +47,7 @@ describe("describeProviderError", () => {
   });
 });
 
-async function run(chunks: UIMessageChunk[], timedOut: boolean) {
+async function run(chunks: UIMessageChunk[], userCancelled: boolean) {
   const out: UIMessageChunk[] = [];
   const source = new ReadableStream<UIMessageChunk>({
     start(controller) {
@@ -55,7 +55,7 @@ async function run(chunks: UIMessageChunk[], timedOut: boolean) {
       controller.close();
     },
   });
-  const reader = source.pipeThrough(surfaceTimeoutAborts(() => timedOut)).getReader();
+  const reader = source.pipeThrough(surfaceTimeoutAborts(() => userCancelled)).getReader();
   for (;;) {
     const { done, value } = await reader.read();
     if (done) return out;
@@ -64,13 +64,13 @@ async function run(chunks: UIMessageChunk[], timedOut: boolean) {
 }
 
 describe("surfaceTimeoutAborts", () => {
-  it("turns the route's own timeout abort into the timeout error the analyst can see", async () => {
-    const out = await run([{ type: "start" }, { type: "abort" }], true);
+  it("turns a timeout or stall abort into the timeout error the analyst can see", async () => {
+    const out = await run([{ type: "start" }, { type: "abort" }], false);
     expect(out).toEqual([{ type: "start" }, { type: "error", errorText: encodeStreamError(CHAT_ERROR_MESSAGES.timeout) }]);
   });
 
   it("leaves a user-initiated Stop as a normal abort", async () => {
-    const out = await run([{ type: "start" }, { type: "abort" }], false);
+    const out = await run([{ type: "start" }, { type: "abort" }], true);
     expect(out).toEqual([{ type: "start" }, { type: "abort" }]);
   });
 });

@@ -15,6 +15,12 @@ export const GEMINI_MODEL_SETTINGS = {
   thinkingBudget: 0,
   /** One retry on transient provider errors; more would not fit inside the route's 25 s timeout. */
   maxRetries: 1,
+  /**
+   * Healthy replies start within ~1-5 s; one real request stalled with no output for the full 25 s.
+   * After 10 s without content the attempt is abandoned and restarted once (2 attempts fit in 25 s).
+   */
+  firstChunkTimeoutMs: 10_000,
+  stallAttempts: 2,
 } as const;
 
 export const AI_SYSTEM_PROMPT = `You are an AI investigation assistant for the LayerNet research prototype.
