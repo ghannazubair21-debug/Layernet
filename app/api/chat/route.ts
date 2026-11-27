@@ -9,7 +9,14 @@ import {
 import { parseChatMessages } from "@/lib/server/chatRequest";
 import { acquireChatSlot } from "@/lib/server/chatSlots";
 import { readBoundedJson } from "@/lib/server/readJsonBody";
+import {
+  CHAT_ERROR_MESSAGES,
+  describeProviderError,
+  encodeStreamError,
+  surfaceTimeoutAborts,
+} from "@/lib/server/chatErrors";
 import { checkRequestOrigin } from "@/lib/server/requestGuard";
+import type { ChatMessageMetadata } from "@/lib/chatOutcome";
 import {
   AI_SYSTEM_PROMPT,
   GEMINI_MODEL_ID,
@@ -54,7 +61,11 @@ export async function POST(request: Request) {
   }
 
   const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), CHAT_TIMEOUT_MS);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    abortController.abort();
+  }, CHAT_TIMEOUT_MS);
   const abortFromRequest = () => abortController.abort(request.signal.reason);
   const cleanup = () => {
     clearTimeout(timeout);
@@ -91,16 +102,16 @@ export async function POST(request: Request) {
     return createUIMessageStreamResponse({
       stream: toUIMessageStream({
         stream: result.stream,
-        onError: () => "The AI investigation assistant could not complete this response.",
-      }),
+        onError: (error) => encodeStreamError(describeProviderError(error, { timedOut })),
+        // The finish reason lets the client explain safety blocks and length-truncated replies.
+        messageMetadata: ({ part }): ChatMessageMetadata | undefined =>
+          part.type === "finish" ? { finishReason: part.finishReason } : undefined,
+      }).pipeThrough(surfaceTimeoutAborts(() => timedOut)),
       consumeSseStream: consumeStream,
     });
   } catch {
     // Provider exceptions can contain request details; do not log them verbatim.
     cleanup();
-    return Response.json(
-      { error: "The AI investigation assistant could not complete this response." },
-      { status: 500 },
-    );
+    return Response.json({ error: CHAT_ERROR_MESSAGES.generic }, { status: 500 });
   }
 }

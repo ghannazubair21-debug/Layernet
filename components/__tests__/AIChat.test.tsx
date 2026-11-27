@@ -239,6 +239,38 @@ describe("AIChat", () => {
   });
 });
 
+describe("AIChat finish notes", () => {
+  it("explains a reply that Gemini's safety filter blocked instead of hiding it", () => {
+    mockedUseChat.mockReturnValue(
+      makeChatReturn({
+        messages: [userMsg("Question"), { id: "assistant-1", role: "assistant", parts: [], metadata: { finishReason: "content-filter" } }],
+      }) as unknown as ChatReturn,
+    );
+    render(<AIChat />);
+    expect(screen.getByText(/safety filter stopped this response/)).toBeInTheDocument();
+    expect(screen.queryByText("Thinking...")).not.toBeInTheDocument();
+  });
+
+  it("keeps a truncated reply and notes that it may be cut off", () => {
+    mockedUseChat.mockReturnValue(
+      makeChatReturn({
+        messages: [userMsg("Question"), { ...assistantMsg("Partial answer"), metadata: { finishReason: "length" } }],
+      }) as unknown as ChatReturn,
+    );
+    render(<AIChat />);
+    expect(screen.getByText("Partial answer")).toBeInTheDocument();
+    expect(screen.getByText(/may be cut off/)).toBeInTheDocument();
+  });
+
+  it("shows a mid-stream provider error encoded by the route", () => {
+    mockedUseChat.mockReturnValue(
+      makeChatReturn({ status: "error", error: new Error(JSON.stringify({ error: "Gemini is temporarily unavailable. Retry shortly." })) }) as unknown as ChatReturn,
+    );
+    render(<AIChat />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Gemini is temporarily unavailable. Retry shortly.");
+  });
+});
+
 describe("describeChatError", () => {
   it("falls back to generic text for non-JSON or empty errors", () => {
     expect(describeChatError(undefined)).toMatch(/could not generate a response/);

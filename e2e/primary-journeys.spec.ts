@@ -199,6 +199,37 @@ test("assistant: opens as a modal, reports a busy server, keeps the conversation
   await expect(dialog.getByText("E2E stub question")).toBeVisible();
 });
 
+test("assistant: explains mid-stream provider failures and safety-blocked replies", async ({ page }) => {
+  const sse = (events: unknown[]) => [...events.map((event) => `data: ${JSON.stringify(event)}\n\n`), "data: [DONE]\n\n"].join("");
+  let call = 0;
+  await page.route("**/api/chat", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    call += 1;
+    // Same UI message stream shape as the real route: an encoded {error} text, or a finish with metadata.
+    const events = call === 1
+      ? [{ type: "start", messageId: "a1" }, { type: "error", errorText: JSON.stringify({ error: "Gemini is temporarily unavailable. Retry shortly." }) }]
+      : [{ type: "start", messageId: "a2" }, { type: "finish", finishReason: "content-filter", messageMetadata: { finishReason: "content-filter" } }];
+    return route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1" },
+      body: sse(events),
+    });
+  });
+
+  await gotoReady(page, "/dashboard");
+  await page.getByRole("button", { name: "AI Assistant" }).click();
+  const dialog = page.getByRole("dialog", { name: "AI investigation assistant" });
+  const message = dialog.getByLabel("Message the AI investigation assistant");
+  await message.fill("E2E stub question");
+  await message.press("Enter");
+  await expect(dialog.getByRole("alert")).toContainText("Gemini is temporarily unavailable. Retry shortly.");
+
+  await dialog.getByRole("button", { name: "Retry" }).click();
+  await expect(dialog.getByText(/safety filter stopped this response/)).toBeVisible();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  expect(call).toBe(2);
+});
+
 test.describe("responsive layouts", () => {
   const pages = ["/", "/dashboard", "/analysis", "/analytics", "/history", "/benchmark", "/health", "/settings"];
 

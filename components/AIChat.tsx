@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { describeFinishNote } from "@/lib/chatOutcome";
 
 const suggestedPrompts = [
   "Which evidence should an analyst verify before escalating?",
@@ -24,7 +25,8 @@ const GENERIC_ERROR_DETAIL =
 
 /**
  * The chat route returns fixed, non-sensitive JSON messages such as `{"error":"Chat service is busy. Retry shortly."}`
- * for 4xx/5xx responses. Show that message when present so the analyst knows whether retrying can help.
+ * for 4xx/5xx responses, and encodes mid-stream provider failures (timeout, quota, outage) the same way.
+ * Show that message when present so the analyst knows whether retrying can help.
  */
 export function describeChatError(error: Error | undefined): string {
   if (!error?.message) return GENERIC_ERROR_DETAIL;
@@ -144,8 +146,9 @@ export default function AIChat() {
             messages.map((message) => {
               const text = getTextFromMessage(message);
               const isUser = message.role === "user";
+              const finishNote = isUser ? null : describeFinishNote(message.metadata);
 
-              if (!text && !isUser) {
+              if (!text && !isUser && !finishNote) {
                 return null;
               }
 
@@ -166,8 +169,13 @@ export default function AIChat() {
                       <span>{isUser ? "Analyst" : "AI assistant"}</span>
                     </div>
                     <div className="whitespace-pre-wrap break-words text-sm leading-6">
-                      {text || (isUser ? "" : "Thinking...")}
+                      {text || (isUser || finishNote ? "" : "Thinking...")}
                     </div>
+                    {finishNote ? (
+                      <p className={`${text ? "mt-2 border-t border-[var(--border)] pt-2" : ""} text-xs leading-5 text-[var(--muted-text)]`}>
+                        {finishNote}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               );

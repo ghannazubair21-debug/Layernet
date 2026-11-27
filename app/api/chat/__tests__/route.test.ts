@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@ai-sdk/google", () => ({ google: vi.fn(() => "test-model") }));
-vi.mock("ai", () => ({
+vi.mock("ai", async (importOriginal) => ({
+  // Real error classes are kept so provider failures can be classified (lib/server/chatErrors.ts).
+  ...(await importOriginal<typeof import("ai")>()),
   consumeStream: vi.fn(),
   convertToModelMessages: vi.fn(async (messages: unknown) => messages),
   createUIMessageStreamResponse: vi.fn(() => new Response("streamed")),
@@ -12,7 +14,7 @@ vi.mock("ai", () => ({
   toUIMessageStream: vi.fn(() => new ReadableStream()),
 }));
 
-import { convertToModelMessages, streamText } from "ai";
+import { APICallError, convertToModelMessages, streamText, toUIMessageStream } from "ai";
 import { GET, POST } from "@/app/api/chat/route";
 
 describe("/api/chat", () => {
@@ -113,6 +115,38 @@ describe("/api/chat", () => {
       maxRetries: 1,
       providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
     }));
+  });
+
+  it("encodes mid-stream provider failures as fixed JSON messages and reports the finish reason", async () => {
+    vi.useFakeTimers();
+    vi.mocked(streamText).mockImplementationOnce(() => ({ stream: new ReadableStream() }) as never);
+    await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: [{ id: "1", role: "user", parts: [{ type: "text", text: "hello" }] }] }),
+    }));
+    const uiOptions = vi.mocked(toUIMessageStream).mock.calls.at(-1)?.[0] as unknown as {
+      onError: (error: unknown) => string;
+      messageMetadata: (options: { part: { type: string; finishReason?: string } }) => unknown;
+    };
+    const quota = new APICallError({
+      message: "quota exceeded for key AIza-secret",
+      url: "https://generativelanguage.googleapis.com/v1beta/models",
+      requestBodyValues: { contents: "private prompt" },
+      statusCode: 429,
+    });
+
+    const quotaText = uiOptions.onError(quota);
+    expect(JSON.parse(quotaText)).toEqual({ error: expect.stringContaining("rate limit or quota") });
+    expect(quotaText).not.toMatch(/AIza|private prompt|googleapis/);
+    expect(uiOptions.messageMetadata({ part: { type: "finish", finishReason: "content-filter" } }))
+      .toEqual({ finishReason: "content-filter" });
+    expect(uiOptions.messageMetadata({ part: { type: "text-delta" } })).toBeUndefined();
+
+    vi.advanceTimersByTime(25_000);
+    expect(JSON.parse(uiOptions.onError(new Error("aborted")))).toEqual({ error: expect.stringContaining("25 seconds") });
+    // Release the chat slot the never-ending stub stream would otherwise hold.
+    (vi.mocked(streamText).mock.calls.at(-1)?.[0] as unknown as { onAbort?: (event: unknown) => void }).onAbort?.({});
   });
 
   it("limits concurrent provider requests and releases a slot when streaming ends", async () => {
