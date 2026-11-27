@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEV_LABS_ENABLED } from "@/lib/devLabs";
 import Link from "next/link";
 import { Bot, Database, FlaskConical, Palette, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -150,19 +151,21 @@ export default function SettingsPage() {
         </Panel>
       </div>
 
-      <Panel title="Component lab" className="ln-enter">
-        <p className="text-sm text-[var(--muted-text)]">
-          Interaction and accessibility demonstrations retained from earlier phases.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2.5">
-          <Link href="/micro-interactions" className="layernet-button px-4 py-2 text-sm">
-            Micro-interactions
-          </Link>
-          <Link href="/playground" className="layernet-button px-4 py-2 text-sm">
-            Accessible component playground
-          </Link>
-        </div>
-      </Panel>
+      {DEV_LABS_ENABLED ? (
+        <Panel title="Component lab" className="ln-enter">
+          <p className="text-sm text-[var(--muted-text)]">
+            Development-only interaction and accessibility demonstrations. Hidden in production builds.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            <Link href="/micro-interactions" className="layernet-button px-4 py-2 text-sm">
+              Micro-interactions
+            </Link>
+            <Link href="/playground" className="layernet-button px-4 py-2 text-sm">
+              Accessible component playground
+            </Link>
+          </div>
+        </Panel>
+      ) : null}
     </section>
   );
 }

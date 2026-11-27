@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import AIChat from "@/components/AIChat";
+import { DEV_LABS_ENABLED } from "@/lib/devLabs";
 import {
   readThemeMode,
   saveSettings,
@@ -52,7 +53,10 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "Health", href: "/health", icon: HeartPulse },
       { label: "Settings", href: "/settings", icon: Settings },
-      { label: "Component Lab", href: "/micro-interactions", icon: Shapes, also: ["/playground"] },
+      // Development aid only; hidden (and the route 404s) in production builds.
+      ...(DEV_LABS_ENABLED
+        ? [{ label: "Component Lab", href: "/micro-interactions", icon: Shapes, also: ["/playground"] }]
+        : []),
     ],
   },
 ];
