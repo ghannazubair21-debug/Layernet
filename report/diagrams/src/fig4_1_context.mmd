@@ -1,0 +1,15 @@
+flowchart LR
+  AN["Analyst<br/>(web browser)"]
+  LN["LayerNet<br/>Next.js web application"]
+  LS[("Browser localStorage<br/>layernet-transactions<br/>layernet-settings")]
+  GEM["Google Gemini API<br/>gemini-2.5-flash"]
+  PY["Local Python runtime<br/>layernet_ml + saved artifacts"]
+  CSV["ULB-format CSV file<br/>(user supplied)"]
+  AN -->|"transaction details,<br/>filters, settings"| LN
+  LN -->|"priority score, factors,<br/>charts, records"| AN
+  LN <-->|"read / write JSON"| LS
+  LN -->|"chat messages (HTTPS)"| GEM
+  GEM -->|"streamed text"| LN
+  CSV -->|"upload"| LN
+  LN -->|"CSV on stdin"| PY
+  PY -->|"JSON scores, metrics"| LN

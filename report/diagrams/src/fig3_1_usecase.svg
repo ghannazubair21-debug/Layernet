@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1010" height="930" viewBox="0 0 1010 930" font-family="Arial, Helvetica, sans-serif">
+<defs><marker id="open" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto"><path d="M0,0 L11,6 L0,12" fill="none" stroke="#333" stroke-width="1.5"/></marker></defs>
+<rect x="0" y="0" width="1010" height="930" fill="#fff"/>
+<rect x="225" y="30" width="585" height="820" fill="#fafafa" stroke="#888" stroke-width="1.5"/>
+<text x="517" y="58" text-anchor="middle" font-size="22" font-weight="bold" fill="#222">LayerNet web application</text>
+<line x1="125" y1="410" x2="250" y2="110" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="200" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="290" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="380" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="470" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="560" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="660" stroke="#333" stroke-width="1.6"/>
+<line x1="125" y1="410" x2="250" y2="760" stroke="#333" stroke-width="1.6"/>
+<ellipse cx="415" cy="110" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="117.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-01 Analyse transaction</text>
+<ellipse cx="415" cy="200" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="207.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-02 View dashboard</text>
+<ellipse cx="415" cy="290" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="297.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-03 Review history</text>
+<ellipse cx="415" cy="380" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="387.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-04 View analytics</text>
+<ellipse cx="415" cy="470" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="477.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-06 Manage settings</text>
+<ellipse cx="415" cy="560" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="567.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-08 Check system health</text>
+<ellipse cx="415" cy="660" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="667.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-07 Ask assistant</text>
+<ellipse cx="415" cy="760" rx="165" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="415" y="767.0" text-anchor="middle" font-size="20" fill="#1f1f1f">UC-05 Run benchmark replay</text>
+<ellipse cx="700" cy="170" rx="95" ry="34" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="700" y="177.0" text-anchor="middle" font-size="20" fill="#1f1f1f">Validate input</text>
+<ellipse cx="700" cy="290" rx="100" ry="44" fill="#fdf2f4" stroke="#8a3b52" stroke-width="2"/><text x="700" y="285.0" text-anchor="middle" font-size="20" fill="#1f1f1f">Save record to</text><text x="700" y="309.0" text-anchor="middle" font-size="20" fill="#1f1f1f">browser storage</text>
+<line x1="560" y1="96" x2="612" y2="152" stroke="#333" stroke-width="1.6" stroke-dasharray="7,5" marker-end="url(#open)"/>
+<text x="604" y="112" font-size="18" fill="#333">«include»</text>
+<line x1="530" y1="134" x2="652" y2="250" stroke="#333" stroke-width="1.6" stroke-dasharray="7,5" marker-end="url(#open)"/>
+<text x="642" y="230" font-size="18" fill="#333">«include»</text>
+<g stroke="#8a3b52" stroke-width="2.5" fill="none"><circle cx="95" cy="378" r="16" fill="#fdf2f4"/><line x1="95" y1="394" x2="95" y2="434"/><line x1="69" y1="408" x2="121" y2="408"/><line x1="95" y1="434" x2="75" y2="470"/><line x1="95" y1="434" x2="115" y2="470"/></g><text x="95" y="496" text-anchor="middle" font-size="20" fill="#222">Analyst</text>
+<line x1="580" y1="660" x2="890" y2="590" stroke="#333" stroke-width="1.6"/>
+<line x1="580" y1="760" x2="890" y2="790" stroke="#333" stroke-width="1.6"/>
+<g stroke="#8a3b52" stroke-width="2.5" fill="none"><circle cx="920" cy="548" r="16" fill="#fdf2f4"/><line x1="920" y1="564" x2="920" y2="604"/><line x1="894" y1="578" x2="946" y2="578"/><line x1="920" y1="604" x2="900" y2="640"/><line x1="920" y1="604" x2="940" y2="640"/></g><text x="920" y="666" text-anchor="middle" font-size="20" fill="#222">«system»</text><text x="920" y="690" text-anchor="middle" font-size="20" fill="#222">Gemini API</text>
+<g stroke="#8a3b52" stroke-width="2.5" fill="none"><circle cx="920" cy="748" r="16" fill="#fdf2f4"/><line x1="920" y1="764" x2="920" y2="804"/><line x1="894" y1="778" x2="946" y2="778"/><line x1="920" y1="804" x2="900" y2="840"/><line x1="920" y1="804" x2="940" y2="840"/></g><text x="920" y="866" text-anchor="middle" font-size="20" fill="#222">«system»</text><text x="920" y="890" text-anchor="middle" font-size="20" fill="#222">Python ML</text>
+</svg>

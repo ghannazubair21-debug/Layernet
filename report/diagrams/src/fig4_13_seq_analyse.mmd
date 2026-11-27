@@ -1,0 +1,26 @@
+sequenceDiagram
+  autonumber
+  actor A as Analyst
+  participant P as AnalysisPage
+  participant S as TxService
+  participant R as Repository
+  participant F as Features
+  participant X as RulesV1
+  A->>P: submit form
+  P->>P: validate()
+  alt invalid
+    P-->>A: field errors
+  else valid
+    P->>S: analyze(record)
+    S->>R: list()
+    R-->>S: prior records
+    S->>F: engineer features
+    F-->>S: features, baseline
+    S->>X: analyzeTransaction()
+    X-->>S: score, factors
+    S-->>P: AnalysisResult
+    P->>S: save(tx)
+    S->>R: save(tx)
+    R-->>S: stored
+    P-->>A: result + saved message
+  end

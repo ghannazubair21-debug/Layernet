@@ -1,0 +1,24 @@
+flowchart LR
+  subgraph WEB["Next.js application"]
+    direction TB
+    UI["«component»<br/>UI pages (app/*)"]
+    CMP["«component»<br/>Shared UI (components/*)"]
+    LIB["«component»<br/>Domain logic (lib/*)"]
+    CHAT["«component»<br/>Chat API route"]
+    BEN["«component»<br/>Benchmark API route"]
+  end
+  subgraph MLP["Python: layernet_ml"]
+    direction TB
+    REP["«component»<br/>benchmark_replay"]
+    TRN["«component»<br/>training + evaluation<br/>(offline)"]
+  end
+  ART[("«artifact»<br/>ml/artifacts/*")]
+  GEM["«external»<br/>Gemini API"]
+  UI --> CMP
+  UI --> LIB
+  CMP -->|useChat| CHAT
+  UI -->|fetch| BEN
+  CHAT -->|AI SDK| GEM
+  BEN -->|spawn| REP
+  REP -->|reads| ART
+  TRN -->|writes| ART

@@ -1,0 +1,34 @@
+erDiagram
+  TRANSACTION_RECORD ||--|| ANALYSIS_SNAPSHOT : embeds
+  ACCOUNT |o--o{ TRANSACTION_RECORD : "optional accountId"
+  DEVICE |o--o{ TRANSACTION_RECORD : "optional deviceId"
+  BROWSER_PROFILE ||--|| SETTINGS : holds
+  BROWSER_PROFILE ||--o{ TRANSACTION_RECORD : holds
+  TRANSACTION_RECORD {
+    string transactionId PK
+    string accountId FK "optional"
+    string timestamp
+    number amount
+    string type
+    string location "optional"
+    string channel "optional"
+    string deviceId FK "optional"
+  }
+  ANALYSIS_SNAPSHOT {
+    number riskScore "0-100 uncalibrated"
+    string risk "Low, Medium, High"
+    string status "Cleared, Flagged, Reviewed"
+  }
+  ACCOUNT {
+    string accountId PK "identifier only"
+  }
+  DEVICE {
+    string deviceId PK "identifier only"
+  }
+  SETTINGS {
+    string key PK "layernet-settings"
+    string theme "system, light, dark"
+  }
+  BROWSER_PROFILE {
+    string origin PK "one per site origin"
+  }

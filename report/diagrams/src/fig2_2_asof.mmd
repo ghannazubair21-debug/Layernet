@@ -1,0 +1,9 @@
+flowchart TB
+  subgraph PAST["History(R, t): same recipient R, step < t"]
+    direction LR
+    A["step t-k<br/>bucket"] --> B["..."] --> C["step t-1<br/>bucket"]
+  end
+  PAST --> T["Target transaction<br/>recipient R, step t, label isFraud"]
+  S["Same-step transactions<br/>(simultaneous)"] -. excluded .-> T
+  F["Later-step transactions<br/>(future)"] -. excluded .-> T
+  T --> M["Model input: current token +<br/>up to 17 prior step buckets"]

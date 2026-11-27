@@ -1,0 +1,26 @@
+@APPENDICES
+
+@APPENDIX I|Requirement Traceability Matrix
+Table A.1 traces the requirements of Chapter 3, identified by the IDs used in Tables 3.3 and 3.4 and in Section 3.6, to the files that implement them and to the way in which they were verified at commit `ca7d595`. The web application passed 37 component and route tests, 11 unit tests and one end-to-end browser test. The Python tests of the research pipeline exist in `ml/tests` but were not re-run for this report, so the rows that depend on them are marked accordingly rather than reported as passed.
+
+!TABLE Requirement traceability matrix
+!WIDTHS 0.85,2.56,1.81,1.05
+| ID | Source file(s) | Verification | Status |
+| FR-01 | `app/analysis/page.tsx` | Page test; end-to-end test | Implemented |
+| FR-02 | `app/analysis/page.tsx` | Page test | Implemented |
+| FR-03 | `lib/fraudAnalysis.ts` | Unit and end-to-end tests | Implemented |
+| FR-04 | `lib/featureEngineering.ts`, `lib/behavioralBaseline.ts` | Node unit tests | Display only |
+| FR-05 | `lib/transactionStorage.ts`, `lib/transactionService.ts` | Unit tests | Implemented |
+| FR-06 | `app/dashboard`, `lib/transactionMetrics.ts` | Metrics tests; Figure 4.4 | Implemented |
+| FR-07 | `app/history`, `components/TransactionTable.tsx` | Scripted QA; Figure 4.6 | Implemented |
+| FR-08 | `app/analytics` | Scripted QA | Implemented |
+| FR-09 | `app/api/benchmark/route.ts`, `benchmark_replay.py` | Route tests; Figure 4.7 | Implemented |
+| FR-10 | `components/theme.ts`, `components/ThemeSettings.tsx` | Component test | Implemented |
+| FR-11 | `app/api/chat/route.ts`, `components/AIChat.tsx` | Route and component tests | Needs key |
+| FR-12 | `app/health` | Scripted QA | Implemented |
+| RFR-01–06 | `ml/src/layernet_ml/*` | Manifests; tests not re-run | Ablation partial |
+| RFR-07 | `ml/src/layernet_ml/ieee_data.py` (loader only) | None | Not implemented |
+| NFR-02 | `app/api/benchmark/route.ts` | Route test; 2,575-row run | Met |
+| NFR-04 | `app/api/chat/route.ts`, `lib/ai-config.ts` | Route test | Met |
+| NFR-05 | `benchmark_replay.py` | Python test not re-run | Implemented |
+| NFR-07 | `components/AppShell.tsx`, forms | Playwright; QA sweep | Met |

@@ -1,0 +1,7 @@
+flowchart TB
+  P["Plan increment<br/>(objective, scope)"] --> R["Specify<br/>requirements"]
+  R --> D["Design<br/>(UI, data, interfaces)"]
+  D --> I["Implement<br/>(code + unit tests)"]
+  I --> V["Verify<br/>(tests, QA sweep)"]
+  V --> E["Review and record<br/>(commit, manifests)"]
+  E -->|"next increment"| P

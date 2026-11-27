@@ -1,0 +1,12 @@
+flowchart TB
+  S(("Start")) --> A["Enter transaction details<br/>and press Analyze"]
+  A --> C{"Required fields<br/>valid?"}
+  C -->|No| D["Show field errors<br/>(aria-invalid)"]
+  D --> A
+  C -->|Yes| E["Load prior records; compute features<br/>and baseline (display only)"]
+  E --> H["Apply rules baseline v1:<br/>score, risk, decision, factors"]
+  H --> I{"Saved to<br/>localStorage?"}
+  I -->|No| J["Show submit error"]
+  I -->|Yes| K["Show result dossier and<br/>saved-to-History message"]
+  K --> L(("End"))
+  J --> L

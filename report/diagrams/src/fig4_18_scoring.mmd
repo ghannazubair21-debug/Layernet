@@ -1,0 +1,14 @@
+flowchart TB
+  subgraph R1[" "]
+    direction LR
+    A(["Validated<br/>transaction"]) --> B["Amount points<br/>min(50, floor(10·log10 amount))"] --> C["Type points<br/>Refund +10<br/>Withdrawal +15"]
+  end
+  subgraph R2[" "]
+    direction LR
+    D["Channel points<br/>Mobile +5, Web +8<br/>POS −5"] --> E["Time points<br/>UTC 00–05 h: +12"] --> F["Sum, clamp<br/>to 0–100"]
+  end
+  subgraph R3[" "]
+    direction LR
+    G["Risk<br/>High ≥ 80<br/>Medium ≥ 40"] --> H["Decision<br/>Block ≥ 85<br/>Review ≥ 60"] --> I(["Result dossier<br/>with factors"])
+  end
+  R1 --> R2 --> R3

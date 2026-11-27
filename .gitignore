@@ -53,3 +53,6 @@ yarn-error.log*
 next-env.d.ts
 
 *.egg-info/
+
+# Generated FYP report documents (.doc/.docx/.pdf drafts and build intermediates); sources stay tracked
+/report/output/

@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  actor A as Analyst
+  participant B as BenchmarkPage
+  participant API as /api/benchmark
+  participant PY as benchmark_replay
+  participant M as Artifacts
+  A->>B: choose CSV
+  B->>B: size check (2 MB)
+  B->>API: POST csv
+  API->>PY: spawn, CSV on stdin
+  PY->>PY: validate (5,000 rows)
+  PY->>M: verify SHA-256, load
+  M-->>PY: models, thresholds
+  PY-->>API: JSON results
+  alt error or 120 s timeout
+    API-->>B: failure kind
+  else success
+    API-->>B: BenchmarkSuccess
+    B-->>A: metrics, row table
+  end

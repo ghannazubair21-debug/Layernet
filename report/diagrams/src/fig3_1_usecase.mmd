@@ -1,0 +1,29 @@
+flowchart LR
+  AN(("Analyst<br/>(primary actor)"))
+  subgraph SYS["LayerNet system"]
+    direction TB
+    UC1(["UC-01 Analyse transaction"])
+    UC2(["UC-02 View dashboard"])
+    UC3(["UC-03 Review history and details"])
+    UC4(["UC-04 View analytics"])
+    UC5(["UC-05 Run ULB benchmark replay"])
+    UC6(["UC-06 Manage settings and theme"])
+    UC7(["UC-07 Ask investigation assistant"])
+    UC8(["UC-08 Check system health"])
+    UCV(["Validate input"])
+    UCS(["Save record to browser storage"])
+  end
+  GEM(("Google Gemini API<br/>(secondary actor)"))
+  PY(("Python ML runtime<br/>(secondary actor)"))
+  AN --- UC1
+  AN --- UC2
+  AN --- UC3
+  AN --- UC4
+  AN --- UC5
+  AN --- UC6
+  AN --- UC7
+  AN --- UC8
+  UC1 -. include .-> UCV
+  UC1 -. include .-> UCS
+  UC7 --- GEM
+  UC5 --- PY
