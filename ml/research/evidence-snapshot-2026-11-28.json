@@ -1,0 +1,598 @@
+{
+ "generated_utc": "2026-11-28T10:17:58.860740+00:00",
+ "git_commit": "8acd7daf67c82d0d17085634e2e948be8e21fb97",
+ "git_status": "M AGENTS.md\n?? ml/research/",
+ "python": "3.12.14",
+ "platform": "Windows-11-10.0.26300-SP0",
+ "manifests": {
+  "ensemble-selectors-v1": {
+   "manifest_sha256": "766b72089da865802c90557ca5eef1cdfae11b204d1c4531d00428c1f7775dec",
+   "recorded_status": "NOT RECORDED",
+   "pinned_files": [
+    {
+     "path": "ml/artifacts/ensemble-selectors-v1/xgboost_selector.joblib",
+     "expected_sha256": "b669ed485d417f87ae09c16b97614513b939b457d3dc675f1d7b25924796d6ff",
+     "actual_sha256": "b669ed485d417f87ae09c16b97614513b939b457d3dc675f1d7b25924796d6ff",
+     "bytes": 980432,
+     "status": "match",
+     "pointer": "/models/xgboost/model_file"
+    },
+    {
+     "path": "ml/artifacts/ensemble-selectors-v1/random_forest_selector.joblib",
+     "expected_sha256": "87dd2f84e41419f97c55111468e1724e416af246a36c0d068f01aae0e2760718",
+     "actual_sha256": "87dd2f84e41419f97c55111468e1724e416af246a36c0d068f01aae0e2760718",
+     "bytes": 1870073,
+     "status": "match",
+     "pointer": "/models/random_forest/model_file"
+    },
+    {
+     "path": "ml/artifacts/ensemble-selectors-v1/validation_predictions.csv",
+     "expected_sha256": "bbae9a0e4380687d9688d6242e0ce8438d183dfda65efa35cc9ff5d551a48135",
+     "actual_sha256": "bbae9a0e4380687d9688d6242e0ce8438d183dfda65efa35cc9ff5d551a48135",
+     "bytes": 2873560,
+     "status": "match",
+     "pointer": "/validation_predictions/file"
+    },
+    {
+     "path": "ml/artifacts/xgboost-v1/xgboost_model.joblib",
+     "expected_sha256": "19963fe109752f91e4b92cd206f2f987f8b8daa9e305af083fd5c7a6e1e82a69",
+     "actual_sha256": "19963fe109752f91e4b92cd206f2f987f8b8daa9e305af083fd5c7a6e1e82a69",
+     "bytes": 212514,
+     "status": "match",
+     "pointer": "/baseline_artifacts/xgboost/model_file"
+    },
+    {
+     "path": "ml/artifacts/random-forest-v1/random_forest_model.joblib",
+     "expected_sha256": "94ed04c3e40f6079b9c47726ef7ce15dc67463b69a9b5aead43a3495ac74ff69",
+     "actual_sha256": "94ed04c3e40f6079b9c47726ef7ce15dc67463b69a9b5aead43a3495ac74ff69",
+     "bytes": 4303993,
+     "status": "match",
+     "pointer": "/baseline_artifacts/random_forest/model_file"
+    },
+    {
+     "path": "ml/artifacts/isolation-forest-v1/isolation_forest_model.joblib",
+     "expected_sha256": "d73b1f5d8f0ab58785838af24ff24b5869fc187b7a89eea3eab3d20e8712ccdf",
+     "actual_sha256": "d73b1f5d8f0ab58785838af24ff24b5869fc187b7a89eea3eab3d20e8712ccdf",
+     "bytes": 1824221,
+     "status": "match",
+     "pointer": "/baseline_artifacts/isolation_forest/model_file"
+    }
+   ]
+  },
+  "ensemble-v1": {
+   "manifest_sha256": "562288cf0e2605ea06712cc4e8d23e84a80cfb7a293ee7b090cff086ceb8a2ee",
+   "recorded_status": "NOT RECORDED",
+   "pinned_files": [
+    {
+     "path": "ml/artifacts/xgboost-v1/xgboost_model.joblib",
+     "expected_sha256": "19963fe109752f91e4b92cd206f2f987f8b8daa9e305af083fd5c7a6e1e82a69",
+     "actual_sha256": "19963fe109752f91e4b92cd206f2f987f8b8daa9e305af083fd5c7a6e1e82a69",
+     "bytes": 212514,
+     "status": "match",
+     "pointer": "/component_artifacts/xgboost/artifact"
+    },
+    {
+     "path": "ml/artifacts/ensemble-selectors-v1/xgboost_selector.joblib",
+     "expected_sha256": "b669ed485d417f87ae09c16b97614513b939b457d3dc675f1d7b25924796d6ff",
+     "actual_sha256": "b669ed485d417f87ae09c16b97614513b939b457d3dc675f1d7b25924796d6ff",
+     "bytes": 980432,
+     "status": "match",
+     "pointer": "/component_artifacts/xgboost/validation_selector_artifact"
+    },
+    {
+     "path": "ml/artifacts/random-forest-v1/random_forest_model.joblib",
+     "expected_sha256": "94ed04c3e40f6079b9c47726ef7ce15dc67463b69a9b5aead43a3495ac74ff69",
+     "actual_sha256": "94ed04c3e40f6079b9c47726ef7ce15dc67463b69a9b5aead43a3495ac74ff69",
+     "bytes": 4303993,
+     "status": "match",
+     "pointer": "/component_artifacts/random_forest/artifact"
+    },
+    {
+     "path": "ml/artifacts/ensemble-selectors-v1/random_forest_selector.joblib",
+     "expected_sha256": "87dd2f84e41419f97c55111468e1724e416af246a36c0d068f01aae0e2760718",
+     "actual_sha256": "87dd2f84e41419f97c55111468e1724e416af246a36c0d068f01aae0e2760718",
+     "bytes": 1870073,
+     "status": "match",
+     "pointer": "/component_artifacts/random_forest/validation_selector_artifact"
+    },
+    {
+     "path": "ml/artifacts/isolation-forest-v1/isolation_forest_model.joblib",
+     "expected_sha256": "d73b1f5d8f0ab58785838af24ff24b5869fc187b7a89eea3eab3d20e8712ccdf",
+     "actual_sha256": "d73b1f5d8f0ab58785838af24ff24b5869fc187b7a89eea3eab3d20e8712ccdf",
+     "bytes": 1824221,
+     "status": "match",
+     "pointer": "/component_artifacts/isolation_forest/artifact"
+    },
+    {
+     "path": "ml/artifacts/ensemble-v1/normalization_reference_scores.npz",
+     "expected_sha256": "6ee887e26408db9f5c33128534afa8a46b1241df0f5fab054b184ce95300dc31",
+     "actual_sha256": "6ee887e26408db9f5c33128534afa8a46b1241df0f5fab054b184ce95300dc31",
+     "bytes": 588136,
+     "status": "match",
+     "pointer": "/normalization/reference_artifact"
+    }
+   ]
+  },
+  "isolation-forest-v1": {
+   "manifest_sha256": "e761b418517d12ed212aa39d0cae1f067f0f705d9eaeb248e22a7a7de9d20d88",
+   "recorded_status": "NOT RECORDED",
+   "pinned_files": []
+  },
+  "paysim-history-ablation-v1": {
+   "manifest_sha256": "80921de31519e9919e2b9116b9d149accf2cb8ffa737e046cb6ea4beebc369e0",
+   "recorded_status": "partial",
+   "pinned_files": [
+    {
+     "path": "ml/reports/paysim-history-ablation-prereg-v1.md",
+     "expected_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+     "actual_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+     "bytes": 8065,
+     "status": "match",
+     "pointer": "/preregistration/path"
+    },
+    {
+     "path": "ml/reports/paysim-history-ablation-config-v1.json",
+     "expected_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+     "actual_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+     "bytes": 6513,
+     "status": "match",
+     "pointer": "/preregistration/configuration_path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-123/current_only.joblib",
+     "expected_sha256": "491fbc68424975ae9a5d2e75bcff37046eebeb47e1d893982677936b75286b20",
+     "actual_sha256": "491fbc68424975ae9a5d2e75bcff37046eebeb47e1d893982677936b75286b20",
+     "bytes": 875,
+     "status": "match",
+     "pointer": "/runs/123/current_only/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-123/history_enabled.joblib",
+     "expected_sha256": "555b9b7520d92b62868a771a3d55163f6c59330b03c52ee7cb13690b4f75044a",
+     "actual_sha256": "555b9b7520d92b62868a771a3d55163f6c59330b03c52ee7cb13690b4f75044a",
+     "bytes": 1786,
+     "status": "match",
+     "pointer": "/runs/123/history_enabled/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-2026/current_only.joblib",
+     "expected_sha256": "d652a85914bcbd36d8369c459bab5caa92c47f21cd3aa612a589f7fa0f065b67",
+     "actual_sha256": "d652a85914bcbd36d8369c459bab5caa92c47f21cd3aa612a589f7fa0f065b67",
+     "bytes": 874,
+     "status": "match",
+     "pointer": "/runs/2026/current_only/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-2026/history_enabled.joblib",
+     "expected_sha256": "4c63d794cbf1e25c0972990507b230566dee7a582c5a5780f1dbad5ef65869dd",
+     "actual_sha256": "4c63d794cbf1e25c0972990507b230566dee7a582c5a5780f1dbad5ef65869dd",
+     "bytes": 1787,
+     "status": "match",
+     "pointer": "/runs/2026/history_enabled/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-42/current_only.joblib",
+     "expected_sha256": "6ce56e03248ce473ec6ab969038d892664d90d7361f2d6c9e2400f9e1dd92eb1",
+     "actual_sha256": "6ce56e03248ce473ec6ab969038d892664d90d7361f2d6c9e2400f9e1dd92eb1",
+     "bytes": 872,
+     "status": "match",
+     "pointer": "/runs/42/current_only/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-42/history_enabled.joblib",
+     "expected_sha256": "e64cf831b149287f2e94517161ad4422223d41ae99a23774f149b1ba833c0e3f",
+     "actual_sha256": "e64cf831b149287f2e94517161ad4422223d41ae99a23774f149b1ba833c0e3f",
+     "bytes": 1789,
+     "status": "match",
+     "pointer": "/runs/42/history_enabled/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/selection-freeze.json",
+     "expected_sha256": "c759a8a2aee926b07d7145291071c8cad70abe72d12b88d058c8f70494a1d086",
+     "actual_sha256": "c759a8a2aee926b07d7145291071c8cad70abe72d12b88d058c8f70494a1d086",
+     "bytes": 4032,
+     "status": "match",
+     "pointer": "/selection_freeze/path"
+    }
+   ]
+  },
+  "paysim-history-ablation-v1-attempt-1-partial": {
+   "manifest_sha256": "a1290689539a9b756d92e788b17b13b258b7b62240b53884234c92adacb4f2a2",
+   "recorded_status": "partial",
+   "pinned_files": [
+    {
+     "path": "ml/reports/paysim-history-ablation-prereg-v1.md",
+     "expected_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+     "actual_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+     "bytes": 8065,
+     "status": "match",
+     "pointer": "/preregistration/path"
+    },
+    {
+     "path": "ml/reports/paysim-history-ablation-config-v1.json",
+     "expected_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+     "actual_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+     "bytes": 6513,
+     "status": "match",
+     "pointer": "/preregistration/configuration_path"
+    }
+   ]
+  },
+  "paysim-history-ablation-v1-test-replay-v1": {
+   "manifest_sha256": "c05d9589e9956ce0d6be51793b9a048c6c620ccf09e889bb47aee938e446bbe5",
+   "recorded_status": "partial",
+   "pinned_files": [
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1-test-replay-v1/test-predictions-seed-123.csv.gz",
+     "expected_sha256": "068fea548cc454bda0de8db94d09181651810c4e6012ad8922677c0df66bbd68",
+     "actual_sha256": "068fea548cc454bda0de8db94d09181651810c4e6012ad8922677c0df66bbd68",
+     "bytes": 54044142,
+     "status": "match",
+     "pointer": "/outputs/123/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1-test-replay-v1/test-predictions-seed-2026.csv.gz",
+     "expected_sha256": "92d7690b01da157cfb2b3d33db289fd590851c4bd954fdf5579f3eb2fcc32283",
+     "actual_sha256": "92d7690b01da157cfb2b3d33db289fd590851c4bd954fdf5579f3eb2fcc32283",
+     "bytes": 54581488,
+     "status": "match",
+     "pointer": "/outputs/2026/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1-test-replay-v1/test-predictions-seed-42.csv.gz",
+     "expected_sha256": "4fa891e82cf78cc6c5fadad0be0584c15b9825b5c8fa5e6c7a2e825c0e122330",
+     "actual_sha256": "4fa891e82cf78cc6c5fadad0be0584c15b9825b5c8fa5e6c7a2e825c0e122330",
+     "bytes": 54676913,
+     "status": "match",
+     "pointer": "/outputs/42/path"
+    },
+    {
+     "path": "ml/reports/paysim-history-ablation-prereg-v1.md",
+     "expected_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+     "actual_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+     "bytes": 8065,
+     "status": "match",
+     "pointer": "/preregistration/path"
+    },
+    {
+     "path": "ml/reports/paysim-history-ablation-config-v1.json",
+     "expected_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+     "actual_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+     "bytes": 6513,
+     "status": "match",
+     "pointer": "/preregistration/configuration_path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-123/current_only.joblib",
+     "expected_sha256": "491fbc68424975ae9a5d2e75bcff37046eebeb47e1d893982677936b75286b20",
+     "actual_sha256": "491fbc68424975ae9a5d2e75bcff37046eebeb47e1d893982677936b75286b20",
+     "bytes": 875,
+     "status": "match",
+     "pointer": "/runs/123/current_only/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-123/current_only.joblib",
+     "expected_sha256": "491fbc68424975ae9a5d2e75bcff37046eebeb47e1d893982677936b75286b20",
+     "actual_sha256": "491fbc68424975ae9a5d2e75bcff37046eebeb47e1d893982677936b75286b20",
+     "bytes": 875,
+     "status": "match",
+     "pointer": "/runs/123/current_only/replay_model_reference/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-123/history_enabled.joblib",
+     "expected_sha256": "555b9b7520d92b62868a771a3d55163f6c59330b03c52ee7cb13690b4f75044a",
+     "actual_sha256": "555b9b7520d92b62868a771a3d55163f6c59330b03c52ee7cb13690b4f75044a",
+     "bytes": 1786,
+     "status": "match",
+     "pointer": "/runs/123/history_enabled/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-123/history_enabled.joblib",
+     "expected_sha256": "555b9b7520d92b62868a771a3d55163f6c59330b03c52ee7cb13690b4f75044a",
+     "actual_sha256": "555b9b7520d92b62868a771a3d55163f6c59330b03c52ee7cb13690b4f75044a",
+     "bytes": 1786,
+     "status": "match",
+     "pointer": "/runs/123/history_enabled/replay_model_reference/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-2026/current_only.joblib",
+     "expected_sha256": "d652a85914bcbd36d8369c459bab5caa92c47f21cd3aa612a589f7fa0f065b67",
+     "actual_sha256": "d652a85914bcbd36d8369c459bab5caa92c47f21cd3aa612a589f7fa0f065b67",
+     "bytes": 874,
+     "status": "match",
+     "pointer": "/runs/2026/current_only/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-2026/current_only.joblib",
+     "expected_sha256": "d652a85914bcbd36d8369c459bab5caa92c47f21cd3aa612a589f7fa0f065b67",
+     "actual_sha256": "d652a85914bcbd36d8369c459bab5caa92c47f21cd3aa612a589f7fa0f065b67",
+     "bytes": 874,
+     "status": "match",
+     "pointer": "/runs/2026/current_only/replay_model_reference/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-2026/history_enabled.joblib",
+     "expected_sha256": "4c63d794cbf1e25c0972990507b230566dee7a582c5a5780f1dbad5ef65869dd",
+     "actual_sha256": "4c63d794cbf1e25c0972990507b230566dee7a582c5a5780f1dbad5ef65869dd",
+     "bytes": 1787,
+     "status": "match",
+     "pointer": "/runs/2026/history_enabled/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-2026/history_enabled.joblib",
+     "expected_sha256": "4c63d794cbf1e25c0972990507b230566dee7a582c5a5780f1dbad5ef65869dd",
+     "actual_sha256": "4c63d794cbf1e25c0972990507b230566dee7a582c5a5780f1dbad5ef65869dd",
+     "bytes": 1787,
+     "status": "match",
+     "pointer": "/runs/2026/history_enabled/replay_model_reference/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-42/current_only.joblib",
+     "expected_sha256": "6ce56e03248ce473ec6ab969038d892664d90d7361f2d6c9e2400f9e1dd92eb1",
+     "actual_sha256": "6ce56e03248ce473ec6ab969038d892664d90d7361f2d6c9e2400f9e1dd92eb1",
+     "bytes": 872,
+     "status": "match",
+     "pointer": "/runs/42/current_only/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-42/current_only.joblib",
+     "expected_sha256": "6ce56e03248ce473ec6ab969038d892664d90d7361f2d6c9e2400f9e1dd92eb1",
+     "actual_sha256": "6ce56e03248ce473ec6ab969038d892664d90d7361f2d6c9e2400f9e1dd92eb1",
+     "bytes": 872,
+     "status": "match",
+     "pointer": "/runs/42/current_only/replay_model_reference/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-42/history_enabled.joblib",
+     "expected_sha256": "e64cf831b149287f2e94517161ad4422223d41ae99a23774f149b1ba833c0e3f",
+     "actual_sha256": "e64cf831b149287f2e94517161ad4422223d41ae99a23774f149b1ba833c0e3f",
+     "bytes": 1789,
+     "status": "match",
+     "pointer": "/runs/42/history_enabled/model/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/seed-42/history_enabled.joblib",
+     "expected_sha256": "e64cf831b149287f2e94517161ad4422223d41ae99a23774f149b1ba833c0e3f",
+     "actual_sha256": "e64cf831b149287f2e94517161ad4422223d41ae99a23774f149b1ba833c0e3f",
+     "bytes": 1789,
+     "status": "match",
+     "pointer": "/runs/42/history_enabled/replay_model_reference/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-history-ablation-v1/manifest.json",
+     "expected_sha256": "80921de31519e9919e2b9116b9d149accf2cb8ffa737e046cb6ea4beebc369e0",
+     "actual_sha256": "80921de31519e9919e2b9116b9d149accf2cb8ffa737e046cb6ea4beebc369e0",
+     "bytes": 21195,
+     "status": "match",
+     "pointer": "/training_source/manifest_path"
+    }
+   ]
+  },
+  "paysim-temporal-v1": {
+   "status": "inaccessible",
+   "error": "PermissionError"
+  },
+  "paysim-transformer-seeds-v1": {
+   "manifest_sha256": "f05e805d262a54488bc8a911d0855ac99fac16f47872f33b8eb503eb66d97bfb",
+   "recorded_status": "complete",
+   "pinned_files": [
+    {
+     "path": "ml/artifacts/paysim-transformer-seeds-v1/test-labels.npz",
+     "expected_sha256": "648c0fb09d5b3bf0b706e182efbb7baf8130d4374a2e816470869c6af11d44dd",
+     "actual_sha256": "648c0fb09d5b3bf0b706e182efbb7baf8130d4374a2e816470869c6af11d44dd",
+     "bytes": 5749,
+     "status": "match",
+     "pointer": "/outputs/test_labels/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-transformer-seeds-v1/test-scores.npz",
+     "expected_sha256": "34713cb28b8d16e3ee58aca0c1c2f989faa4163cae04dc6cc8a62c90243f4c91",
+     "actual_sha256": "34713cb28b8d16e3ee58aca0c1c2f989faa4163cae04dc6cc8a62c90243f4c91",
+     "bytes": 9499280,
+     "status": "match",
+     "pointer": "/outputs/test_scores/path"
+    },
+    {
+     "path": "ml/reports/paysim-transformer-seeds-prereg-v1.md",
+     "expected_sha256": "67bbced0df8f9b2255fb73b75057cdd7e9a1b5d1c095fbd23d08d69e98cb876e",
+     "actual_sha256": "67bbced0df8f9b2255fb73b75057cdd7e9a1b5d1c095fbd23d08d69e98cb876e",
+     "bytes": 4604,
+     "status": "match",
+     "pointer": "/preregistration/path"
+    },
+    {
+     "path": "ml/reports/paysim-transformer-seeds-config-v1.json",
+     "expected_sha256": "14213e102a1506800461deaccd585898270838d73e7a7a24acbdf1d3ef4fabe4",
+     "actual_sha256": "14213e102a1506800461deaccd585898270838d73e7a7a24acbdf1d3ef4fabe4",
+     "bytes": 5233,
+     "status": "match",
+     "pointer": "/preregistration/config_path"
+    },
+    {
+     "path": "ml/artifacts/paysim-transformer-seeds-v1/selection-freeze.json",
+     "expected_sha256": "76ece4dec6c7f5b818a2b76fa603cbc7a1c688861b55d01110e31cc1a8853def",
+     "actual_sha256": "76ece4dec6c7f5b818a2b76fa603cbc7a1c688861b55d01110e31cc1a8853def",
+     "bytes": 1885,
+     "status": "match",
+     "pointer": "/selection_freeze/path"
+    },
+    {
+     "path": "ml/artifacts/paysim-transformer-seeds-v1/seed-123/temporal_transformer.pt",
+     "expected_sha256": "18d6e61eb751e0325bb401c1d086f5380cf2ac6e6ba729b6e4dbeab9ede76875",
+     "actual_sha256": "18d6e61eb751e0325bb401c1d086f5380cf2ac6e6ba729b6e4dbeab9ede76875",
+     "bytes": 45044,
+     "status": "match",
+     "pointer": "/training/seeds/123/artifact"
+    },
+    {
+     "path": "ml/artifacts/paysim-transformer-seeds-v1/seed-2026/temporal_transformer.pt",
+     "expected_sha256": "1b775a4195306af5bda7ac673e4b8cdc15d6556d6bca4b2bf9e3dfbbb7bb96bf",
+     "actual_sha256": "1b775a4195306af5bda7ac673e4b8cdc15d6556d6bca4b2bf9e3dfbbb7bb96bf",
+     "bytes": 45044,
+     "status": "match",
+     "pointer": "/training/seeds/2026/artifact"
+    },
+    {
+     "path": "ml/artifacts/paysim-transformer-seeds-v1/seed-42/temporal_transformer.pt",
+     "expected_sha256": "6c4bbc909887b65223c8067ae09fbb14fa8c50da4e66ae8b8f06d032967afbae",
+     "actual_sha256": "6c4bbc909887b65223c8067ae09fbb14fa8c50da4e66ae8b8f06d032967afbae",
+     "bytes": 45044,
+     "status": "match",
+     "pointer": "/training/seeds/42/artifact"
+    }
+   ]
+  },
+  "random-forest-v1": {
+   "manifest_sha256": "b14d70c3799e1fd17c0a5305e3d27fd51970cb2019b23e893f0c6a1d5a58e825",
+   "recorded_status": "NOT RECORDED",
+   "pinned_files": []
+  },
+  "xgboost-v1": {
+   "manifest_sha256": "336bacef53fecabed103d50b032f372b08a2e62d478ac2c75cc9fa0bf12064cd",
+   "recorded_status": "NOT RECORDED",
+   "pinned_files": []
+  }
+ },
+ "model_files": [
+  {
+   "path": "ml/artifacts/isolation-forest-v1/isolation_forest_model.joblib",
+   "expected_sha256": "d73b1f5d8f0ab58785838af24ff24b5869fc187b7a89eea3eab3d20e8712ccdf",
+   "actual_sha256": "d73b1f5d8f0ab58785838af24ff24b5869fc187b7a89eea3eab3d20e8712ccdf",
+   "bytes": 1824221,
+   "status": "match",
+   "manifest": "isolation-forest-v1"
+  },
+  {
+   "path": "ml/artifacts/random-forest-v1/random_forest_model.joblib",
+   "expected_sha256": "94ed04c3e40f6079b9c47726ef7ce15dc67463b69a9b5aead43a3495ac74ff69",
+   "actual_sha256": "94ed04c3e40f6079b9c47726ef7ce15dc67463b69a9b5aead43a3495ac74ff69",
+   "bytes": 4303993,
+   "status": "match",
+   "manifest": "random-forest-v1"
+  },
+  {
+   "path": "ml/artifacts/xgboost-v1/xgboost_model.joblib",
+   "expected_sha256": "19963fe109752f91e4b92cd206f2f987f8b8daa9e305af083fd5c7a6e1e82a69",
+   "actual_sha256": "19963fe109752f91e4b92cd206f2f987f8b8daa9e305af083fd5c7a6e1e82a69",
+   "bytes": 212514,
+   "status": "match",
+   "manifest": "xgboost-v1"
+  }
+ ],
+ "reports": [
+  {
+   "path": "ml/reports/paysim-history-ablation-config-v1.json",
+   "expected_sha256": null,
+   "actual_sha256": "01837321e01d853c5b6a58a43f02755f09e674e6b2b453072ad1cc642e3d4704",
+   "bytes": 6513,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-history-ablation-prereg-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "55efb7c60464a33bb2c8b86cc86fb351c6ed14411be60bcec5514da30f5cfc89",
+   "bytes": 8065,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-history-ablation-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "e61cf8b2a34148eeeed8e1f05f4f5c3b34aedb0d09ab5f98d369b05bb6c49ef5",
+   "bytes": 9838,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-sequence-contract-v1.json",
+   "expected_sha256": null,
+   "actual_sha256": "acfd3223b58ee1b58b7c6a522e82dcd8b38e1d0e811c385d5ca60def0834ace7",
+   "bytes": 6412,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-sequence-materialization-v1.json",
+   "expected_sha256": null,
+   "actual_sha256": "c6f8e6253041ef3fd11e5f89afa9e3eb48e04de7fc09794fc73645a670e0f153",
+   "bytes": 3373,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-temporal-prediction-export-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "15a3cb13a613a186389dbaeac7f21c7458ee0495da3a517679e62506d4bb371e",
+   "bytes": 2179,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-temporal-reproduction-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "ea4b58a5905752c6a97b28003cbc9c3a2c6752860399c66ec745cacc5b446e22",
+   "bytes": 5477,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-transformer-seeds-config-v1.json",
+   "expected_sha256": null,
+   "actual_sha256": "14213e102a1506800461deaccd585898270838d73e7a7a24acbdf1d3ef4fabe4",
+   "bytes": 5233,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-transformer-seeds-prereg-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "67bbced0df8f9b2255fb73b75057cdd7e9a1b5d1c095fbd23d08d69e98cb876e",
+   "bytes": 4604,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/paysim-transformer-seeds-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "d0b643a2ce1d379c1e70aac65f75eb8492f83b706548e18167c24128fb56e11d",
+   "bytes": 10519,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/research-evidence-inventory-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "7a7dde82dd5792485b14809d90e6c81a6db55ca16a6be7c420595f74258ac8d6",
+   "bytes": 10199,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/research-findings-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "0c0a7e857c95f2e5ca27e583229cd9d1ae9dee237c018dde30eb63817b6b3de6",
+   "bytes": 15446,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/reports/thesis-writing-notes-v1.md",
+   "expected_sha256": null,
+   "actual_sha256": "4c188970eb1625e9ce5044e73844918772bfc05ec06cb1afd72e2d2b0281e491",
+   "bytes": 4638,
+   "status": "recorded-only"
+  }
+ ],
+ "datasets": [
+  {
+   "path": "ml/data/credittransact/credit_card_fraud.parquet",
+   "expected_sha256": null,
+   "actual_sha256": "4a33623216213beb121cdc85006cf36f336601af7645e73feabe1abdf94e0823",
+   "bytes": 510958545,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/data/paysim/paysim-author-release-v2.zip",
+   "expected_sha256": null,
+   "actual_sha256": "f7eef9ffad5cfa64a034143a5c9b30491d189420b273d5ad5723ca40b596613d",
+   "bytes": 186385561,
+   "status": "recorded-only"
+  },
+  {
+   "path": "ml/data/raw/creditcard.csv",
+   "expected_sha256": null,
+   "actual_sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
+   "bytes": 150828752,
+   "status": "recorded-only"
+  }
+ ]
+}
