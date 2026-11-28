@@ -14,7 +14,24 @@ function getPool(): Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new DatabaseUnavailableError("DATABASE_URL is not set.");
   pool = new Pool({ connectionString, max: 5 });
+  // An idle pooled connection can fail in the background (for example when a
+  // Free-plan Neon compute suspends). The pool reports that as an "error"
+  // event; without a listener Node treats it as unhandled and can crash the
+  // process. The pool discards the broken connection itself, so log and go on.
+  pool.on("error", logIdleConnectionError);
   return pool;
+}
+
+/** Logs only the error's name and code: driver messages can echo connection details. */
+export function logIdleConnectionError(error: unknown): void {
+  const name = error instanceof Error ? error.name : typeof error;
+  const code = typeof error === "object" && error !== null && "code" in error ? String((error as { code: unknown }).code) : "none";
+  console.error(`[layernet:db] idle database connection error (${name}, code ${code}); the connection was discarded.`);
+}
+
+/** Test hook: forget the cached pool so the next call builds a new one. */
+export function resetDatabasePoolForTests(): void {
+  pool = null;
 }
 
 function clientDatabase(client: PoolClient): Database {

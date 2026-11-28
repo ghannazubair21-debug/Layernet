@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { RiskAssessment, TransactionFact } from "@/lib/domain/contracts";
 import type { Database } from "../database";
 import {
+  UnstorableAmountError,
   appendAuditEvent,
   appendRiskAssessment,
   createWorkspace,
@@ -162,6 +163,25 @@ describe("transaction facts", () => {
        VALUES ($1, $2, 'RAW-1', now(), 1, NULL, 'transfer', 'manual-entry', '{"kind":"manual-entry"}')`,
       [randomUUID(), workspace.id],
     )).rejects.toThrow();
+  });
+
+  it("stores amounts with up to 4 decimal places exactly", async () => {
+    const { workspace, user } = await setup();
+    for (const amount of [0, 0.1, 10.1235, 1234567890123.4567, 9_999_999_999_999_998]) {
+      const input = fact(workspace.id, user.id, { amount });
+      const result = await insertTransactionFact(db, input);
+      expect(result.status === "inserted" && result.fact.amount).toBe(amount);
+      expect((await getTransactionFact(db, workspace.id, input.id))?.amount).toBe(amount);
+    }
+  });
+
+  it("refuses amounts that Postgres would round or overflow, and writes nothing", async () => {
+    const { workspace, user } = await setup();
+    for (const amount of [10.123456, 0.00001, 1e16, 1e17]) {
+      const input = fact(workspace.id, user.id, { amount });
+      await expect(insertTransactionFact(db, input)).rejects.toBeInstanceOf(UnstorableAmountError);
+      expect(await getTransactionFact(db, workspace.id, input.id)).toBeNull();
+    }
   });
 
   it("refuses to update a fact", async () => {

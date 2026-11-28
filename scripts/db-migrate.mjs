@@ -15,6 +15,8 @@ if (!connectionString) {
 }
 
 const pool = new Pool({ connectionString, max: 1 });
+// Background errors on an idle connection must not crash the run; log the code only.
+pool.on("error", (error) => console.error(`Idle connection error (code ${error?.code ?? "none"}).`));
 const client = await pool.connect();
 
 /** @type {import("../lib/server/db/migrator.mjs").MigrationExecutor} */

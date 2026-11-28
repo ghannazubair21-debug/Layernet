@@ -49,10 +49,10 @@ Applied to Neon on 2026-11-28: `0001_core_identity_facts_assessments` (re-run: "
 | File | Role |
 |---|---|
 | `lib/server/db/database.ts` | `Database` interface (parameterised `query`, `exec`, `transaction`) |
-| `lib/server/db/neon.ts` | Lazy Neon `Pool` adapter; importing it never needs `DATABASE_URL` (safe for `next build`) |
-| `lib/server/db/repository.ts` | Workspace, user, membership, fact, assessment and audit functions; zod validation on every write **and** read; every query takes an explicit `workspaceId` |
+| `lib/server/db/neon.ts` | Lazy Neon `Pool` adapter; importing it never needs `DATABASE_URL` (safe for `next build`); handles idle-connection `error` events (which would otherwise crash the process) and logs only the error name and code |
+| `lib/server/db/repository.ts` | Workspace, user, membership, fact, assessment and audit functions; zod validation on every write **and** read; every query takes an explicit `workspaceId`; amounts that `numeric(20,4)` cannot store exactly (more than 4 decimals, or ≥ 10¹⁶) are refused before writing instead of being rounded |
 | `lib/server/db/migrator.mjs` | Migration runner shared by CLI and tests |
-| `lib/server/db/__tests__/` | 24 tests on PGlite (in-process Postgres) running the real migrations |
+| `lib/server/db/__tests__/` | 26 tests on PGlite (in-process Postgres) running the real migrations, plus 3 adapter tests with a stand-in pool |
 
 ## Validation (2026-11-28)
 
@@ -68,3 +68,12 @@ Applied to Neon on 2026-11-28: `0001_core_identity_facts_assessments` (re-run: "
 5. **Retention (D5)** still needs an owner decision.
 6. **Legacy import UI** (explicit, never automatic) not built.
 7. Connection retry for Neon cold starts not implemented.
+
+## Update — 2026-11-28 (pre-merge audit of PR #10)
+
+The audit found two defects, fixed before merge:
+
+1. **Silent rounding of amounts.** `numeric(20,4)` stored an input of `10.123456` as `10.1235`, changing an immutable fact, and values ≥ 10¹⁶ failed with a raw overflow error. `insertTransactionFact` now throws `UnstorableAmountError` and writes nothing. Tests cover exact storage up to 4 decimals and refusal of 5+ decimals and ≥ 10¹⁶.
+2. **Unhandled pool errors.** An idle-connection failure is emitted by the pool as an `error` event; with no listener Node can terminate the process. The adapter and the migrate script now listen and log the error code only (no connection details). Tests confirm the listener exists, emitting no longer throws, and the log contains no credentials or host.
+
+Also observed in the audit and still open: the database owner can disable the protective triggers (see item 2 above, least-privilege role), and two simultaneous migration runs fail one of them cleanly rather than waiting.

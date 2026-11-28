@@ -154,6 +154,32 @@ function toTransactionFact(row: Row): TransactionFact {
   });
 }
 
+/** transaction_facts.amount is numeric(20, 4): at most 16 integer digits and 4 decimal places. */
+export const MAX_STORABLE_AMOUNT = 1e16;
+export const AMOUNT_DECIMAL_PLACES = 4;
+
+/** Thrown when an amount cannot be stored exactly; the fact is not written. */
+export class UnstorableAmountError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnstorableAmountError";
+  }
+}
+
+/**
+ * A fact is immutable, so it must be stored exactly as given. Postgres would
+ * silently round extra decimal places and reject large values with a raw
+ * overflow error; refuse both here with a clear reason instead.
+ */
+export function assertStorableAmount(amount: number): void {
+  if (!Number.isFinite(amount) || amount < 0 || amount >= MAX_STORABLE_AMOUNT) {
+    throw new UnstorableAmountError(`Amount must be at least 0 and below ${MAX_STORABLE_AMOUNT}.`);
+  }
+  if (Number(amount.toFixed(AMOUNT_DECIMAL_PLACES)) !== amount) {
+    throw new UnstorableAmountError(`Amount has more than ${AMOUNT_DECIMAL_PLACES} decimal places and would be rounded.`);
+  }
+}
+
 export type InsertFactResult =
   | { status: "inserted"; fact: TransactionFact }
   /** Same (workspaceId, sourceTransactionId) already exists; nothing was written or merged. */
@@ -168,6 +194,7 @@ export type InsertFactResult =
  */
 export async function insertTransactionFact(db: Database, input: TransactionFact): Promise<InsertFactResult> {
   const fact = TransactionFactSchema.parse(input);
+  assertStorableAmount(fact.amount);
   const { rows } = await db.query(
     `INSERT INTO transaction_facts (
        id, workspace_id, source_transaction_id, event_time, amount, currency, type,
