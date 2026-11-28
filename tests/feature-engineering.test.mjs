@@ -153,7 +153,7 @@ test("rejects invalid timestamps and non-finite or negative amounts", () => {
 test("keeps the heuristic fallback and does not label its score as a probability", () => {
   const assessment = analyzeTransaction(transaction());
   assert.equal(assessment.riskScore, 28);
-  assert.equal(assessment.method, "LayerNet rules baseline v1");
+  assert.equal(assessment.method, "LayerNet rules baseline v1.1");
   assert.equal("probability" in assessment, false);
 });
 
@@ -236,7 +236,7 @@ test("transaction service injects a repository and returns features with the heu
   const result = await service.analyze(transaction());
   assert.equal(result.behavioralBaseline.historicalTransactionCount, 1);
   assert.equal(result.features.transactionsLastHour, 1);
-  assert.equal(result.method, "LayerNet rules baseline v1");
+  assert.equal(result.method, "LayerNet rules baseline v1.1");
 });
 
 test("transaction metrics summarize heuristic decisions without calling them fraud labels", () => {

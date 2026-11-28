@@ -1,9 +1,10 @@
 import React from "react";
+import { riskForScore } from "@/lib/riskBands";
+
+const RISK_COLOR = { High: "var(--danger)", Medium: "var(--warning)", Low: "var(--success)" } as const;
 
 function riskColor(score: number): string {
-  if (score >= 80) return "var(--danger)";
-  if (score >= 40) return "var(--warning)";
-  return "var(--success)";
+  return RISK_COLOR[riskForScore(score)];
 }
 
 /** Semicircular 0–100 priority gauge. The score is an uncalibrated heuristic priority. */

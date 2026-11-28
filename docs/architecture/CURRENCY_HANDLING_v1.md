@@ -30,6 +30,9 @@ rates are used or implied):
   amounts above that value.
 * Thresholds `Review ≥ 60`, `Block ≥ 85` and risk bands `Medium ≥ 40`, `High ≥ 80` were never calibrated for any
   currency (the score is an uncalibrated heuristic priority, see `RiskAssessment.scoreKind`).
+  *Update 2026-11-28 (rules baseline v1.1):* the separate risk bands were removed; the risk level now follows the
+  decision (Low < 60, Medium 60–84, High ≥ 85, `lib/riskBands.ts`). The score formula and the Review/Block
+  thresholds are unchanged, and neither set of thresholds is calibrated.
 
 ## 3. Decision taken in this change
 
