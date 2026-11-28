@@ -121,3 +121,7 @@ Data access: a thin repository layer over SQL migrations (e.g. a typed query bui
 ## 8. Explicitly not done
 
 No database, schema migration, server repository, CRUD API, authentication, case UI, or import UI exists yet. The contract is not yet used by the running application. This is intentional, until D1–D10 are decided.
+
+## 9. Update — 2026-11-28 (appended; sections above unchanged)
+
+D1 is now implemented as a schema and server repository layer on Neon Postgres (Free plan): see [`DATABASE.md`](./DATABASE.md). Investigation cases, the import UI, authentication and the API routes are still not implemented, and the running app still uses browser-local history. §8 above describes the state on 2026-11-27.
